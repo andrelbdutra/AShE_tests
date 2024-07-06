@@ -148,7 +148,7 @@ export function setARStuff(source)
    switch (source)
    {
       case 'image':
-         setSource('image', "public/my-images/new_imagem_4.jpg");
+         setSource('image', "my-images/new_imagem_4.jpg");
          //setSource('image', "my-images/img_extobj_5.jpeg");
          break;
       case 'video':
@@ -165,7 +165,7 @@ export function setARStuff(source)
    //----------------------------------------------------------------------------
    // initialize arToolkitContext
    AR.context = new THREEx.ArToolkitContext({
-      cameraParametersUrl:'public/data/camera_para.dat',
+      cameraParametersUrl:'data/camera_para.dat',
       detectionMode: 'mono',
    })
    
@@ -178,7 +178,7 @@ export function setARStuff(source)
    // Create a ArMarkerControls
    new THREEx.ArMarkerControls(AR.context, camera, {	
 		type: "pattern", 
-		patternUrl: "public/data/kanji.patt",
+		patternUrl: "data/kanji.patt",
       	changeMatrixMode: 'cameraTransformMatrix' 
    })
    // as we do changeMatrixMode: 'cameraTransformMatrix', start with invisible scene
