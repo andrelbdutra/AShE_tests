@@ -165,7 +165,7 @@ export function setARStuff(source)
    //----------------------------------------------------------------------------
    // initialize arToolkitContext
    AR.context = new THREEx.ArToolkitContext({
-      cameraParametersUrl:'data/camera_para.dat',
+      cameraParametersUrl:'public/data/camera_para.dat',
       detectionMode: 'mono',
    })
    
@@ -178,7 +178,7 @@ export function setARStuff(source)
    // Create a ArMarkerControls
    new THREEx.ArMarkerControls(AR.context, camera, {	
 		type: "pattern", 
-		patternUrl: "data/kanji.patt",
+		patternUrl: "public/data/kanji.patt",
       	changeMatrixMode: 'cameraTransformMatrix' 
    })
    // as we do changeMatrixMode: 'cameraTransformMatrix', start with invisible scene
