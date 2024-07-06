@@ -148,7 +148,7 @@ export function setARStuff(source)
    switch (source)
    {
       case 'image':
-         setSource('image', "my-images/new_imagem_4.jpg");
+         setSource('image', "./my-images/new_imagem_4.jpg");
          //setSource('image', "my-images/img_extobj_5.jpeg");
          break;
       case 'video':
