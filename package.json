@@ -1,0 +1,19 @@
+{
+  "name": "test_cg",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/andrelbdutra/test_cg.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/andrelbdutra/test_cg/issues"
+  },
+  "homepage": "https://github.com/andrelbdutra/test_cg#readme"
+}
