@@ -1,10 +1,9 @@
-var arToolkitSource, arToolkitContext;
-var camera, renderer, rend, mainScene, scene;
+var  renderer, rend;
 var emptyObj, vObj, vObjMask, light, origLight, shadowPlane, wPlane, dPlane;
 var sphere
 var adjustX, adjustZ;
-let camPosition = new THREE.Vector3(); // Para armazenar posição da câmera virtual
-let camQuaternion = new THREE.Quaternion(); // Para armazenar a rotação da câmera virtual
+let position = new THREE.Vector3(); // Para armazenar posição da câmera virtual
+let quaternion = new THREE.Quaternion(); // Para armazenar a rotação da câmera virtual
 var mouse = new THREE.Vector2();
 var emptyPlane
 var ray    = new THREE.Raycaster();
@@ -12,7 +11,7 @@ var point  = new THREE.Vector2();
 var loader = new THREE.TextureLoader();
 
 var planeSize      = 150.00;
-var sPlaneSize     =  15.00;
+var sPlaneSize     =  150.00;
 var sPlaneSegments = 300.00;
 var vObjHeight     =   1.20;
 var vObjRatio      =   1.00;
@@ -20,11 +19,6 @@ var adjustX        =   0.00;
 var adjustZ        =   0.00;
 var done           =  false;
 
-var objLoader = new THREE.OBJLoader();
-var mtlLoader = new THREE.MTLLoader();
-var GLTFLoader = new THREE.GLTFLoader();
-var objObject = null;
-var markerControls1 
 const loaderElement = document.createElement("div");
 loaderElement.setAttribute("class", "loader");	
 loaderElement.setAttribute("id", "loader");
@@ -37,165 +31,60 @@ const select2 = document.getElementById("select2");
 const select3 = document.getElementById("select3");
 select3.style.display = "none";
 loaderElement.style.display = "none";
+var selectValue = "0";
 
-initialize();
-animate();
+renderer = new THREE.WebGLRenderer({
+	preserveDrawingBuffer: true,
+	antialias: true,
+	alpha: true
+});
+renderer.setClearColor(new THREE.Color('lightgrey'), 0);
+renderer.domElement.style.position = 'absolute';
+renderer.domElement.style.top = '0px';
+renderer.domElement.style.left = '0px';
+renderer.shadowMap.enabled = true;
+renderer.shadowMapSoft = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
+//renderer.setSize(1280, 720);
+renderer.setSize(window.innerWidth, window.innerHeight); // Change here to render in low resolution (for example 640 x 480)
+renderer.domElement.addEventListener('click', onDocumentMouseClick, false);
+document.body.appendChild(renderer.domElement);
 
+let AR = {
+	source: null,
+	context: null,
+}
+let camera, scene;
 
 function onResize() {
-    arToolkitSource.onResizeElement();
-    arToolkitSource.copyElementSizeTo(renderer.domElement);
-    if (arToolkitContext.arController !== null) {
-        arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas);
+    AR.source.onResizeElement();
+    AR.source.copyElementSizeTo(renderer.domElement);
+    if (AR.context.arController !== null) {
+        AR.source.copyElementSizeTo(AR.context.arController.canvas);
     }
 }
-
 window.addEventListener('resize', function(){
     onResize();
 });
 
-function setSource(type, url)
-{
-   if(arToolkitSource) arToolkitSource = null
-
-   arToolkitSource = new THREEx.ArToolkitSource({	
-	   sourceType : type,
-	  sourceUrl : url,
-
-   })
-   arToolkitSource.init(function onReady(){
-	   onResize()    
-   })
-}
-
-function initialize()
-{
-	// let vec1 = new THREE.Vector3(-0.15, 0.77, -0.62)
-	// let vec2 = new THREE.Vector3(-5.25, 17.21, -14.58)
-	// //let vec1 = v;
-	// //let vec2 = new THREE.Vector3(-3, 5, -6);
-	// var ang = vec1.angleTo(vec2); // calcula dif angular
-	// console.log("Diferença angular entre vetores: " + radianosParaGraus(ang));
-	// vec2 = vec2.normalize();
-	// console.log("(" + vec2.x.toFixed(2) + ", " + vec2.y.toFixed(2) + ", "  + vec2.z.toFixed(2) + ")");
-	/**********************************************************************************************
-	 *
-	 * Cenas e iluminação
-	 *
-	 *********************************************************************************************/
-
-	mainScene = new THREE.Scene();
-
-	// fov (degrees), aspect, near, far
-	//camera = new THREE.PerspectiveCamera(32, 16.0 / 9.0, 1, 1000);
-	camera = new THREE.PerspectiveCamera(45,  window.innerWidth / window.innerHeight, 0.1, 1000);
-	mainScene.add(camera);
-
-	/**********************************************************************************************
-	 *
-	 * Renderers e canvas
-	 *
-	 *********************************************************************************************/
-
-	renderer = new THREE.WebGLRenderer({
-		preserveDrawingBuffer: true,
-		antialias: true,
-		alpha: true
-	});
-	renderer.setClearColor(new THREE.Color('lightgrey'), 0);
-	renderer.domElement.style.position = 'absolute';
-	renderer.domElement.style.top = '0px';
-	renderer.domElement.style.left = '0px';
-	renderer.shadowMap.enabled = true;
-	//renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
-	//renderer.setSize(640, 640);
-	renderer.setSize(window.innerWidth, window.innerHeight); // Change here to render in low resolution (for example 640 x 480)
-	document.body.appendChild(renderer.domElement);
-
-	var clock = new THREE.Clock();
-	var deltaTime = 0;
-	var totalTime = 0;
-	
-	/**********************************************************************************************
-	 *
-	 * AR Toolkit
-	 *
-	 *********************************************************************************************/
-
-	arToolkitSource = new THREEx.ArToolkitSource({
-		//sourceType: "webcam",
-		//sourceType: "video", sourceUrl: "my-videos/video5.MOV",
-		sourceType: "image", sourceUrl: "my-images/img_extobj_5.jpeg",
-	});
-	
-	// handle resize event
-	window.addEventListener('resize', function(){
-		onResize()
-	});
-	
-	// create atToolkitContext
-	arToolkitContext = new THREEx.ArToolkitContext({
-		cameraParametersUrl: 'data/camera_para.dat',
-		detectionMode: 'mono',
-	});
-	
-	// copy projection matrix to camera when initialization complete
-	arToolkitContext.init(function onCompleted() {
-		camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
-		//camera.aspect = 1.0;
-		//camera.updateProjectionMatrix();
-	});
-	
-	//setSource("webcam", null)
-	arToolkitSource.init(function onReady(){
-		onResize()
-	});
-
-	/**********************************************************************************************
-	 *
-	 * Materiais e texturas
-	 *
-	 *********************************************************************************************/
-
+function createVirtualObj(){
+	var cube   = new THREE.BoxBufferGeometry(vObjHeight, vObjHeight * vObjRatio, vObjHeight);
 	var wood = new THREE.MeshLambertMaterial({map: loader.load("my-textures/face/wood.png")});
-
     var transparentMaterial = new THREE.MeshBasicMaterial({
         map: loader.load("my-textures/face/wood.png"),
         //color: 0x00ff00,
         transparent: true,
-        opacity: 0.5,
+        //opacity: 0.5,
+        opacity: 1,
     });
+	return vObj        = new THREE.Mesh(cube,   transparentMaterial);
 
-	var shadowMat = new THREE.ShadowMaterial({
-		opacity: 0.75,
-		side: THREE.DoubleSide,
-	});
+}
 
-	var emptyMat = new THREE.MeshBasicMaterial({
-		transparent: true,
-		opacity: 0,
-		side: THREE.DoubleSide,
-	});
-
-	/**********************************************************************************************
-	 *
-	 * Cenas
-	 *
-	 *********************************************************************************************/
-
-	scene = new THREE.Group();
-	mainScene.add(scene);
-	markerControls1 = new THREEx.ArMarkerControls(arToolkitContext, scene, {
-		type: "pattern", patternUrl: "data/kanji.patt",
-	});
-
-	/**********************************************************************************************
-	 *
-	 * Iluminação
-	 *
-	 *********************************************************************************************/
-
-	var ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+function create_scene()
+{
+	let scene = new THREE.Scene();
+	//var ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
 	origLight = new THREE.DirectionalLight(0xffffff);
 	origLight.castShadow = true;
 	var d = vObjRatio * vObjHeight * 10;
@@ -208,86 +97,108 @@ function initialize()
 	origLight.shadow.mapSize.height = 4096;
 
 	light = origLight.clone();
-
-	//var helper = new THREE.CameraHelper(light.shadow.camera);
-	//scene.add(helper);
-	var helper = new THREE.CameraHelper(camera);
-	scene.add(helper);
-	/**********************************************************************************************
-	 *
-	 * Geometrias
-	 *
-	 *********************************************************************************************/
-
-	var cube   = new THREE.BoxBufferGeometry(vObjHeight, vObjHeight * vObjRatio, vObjHeight);
-	//var cube   = new THREE.BoxGeometry(1.2, 1.2, 1.2);
-	var plane  = new THREE.PlaneGeometry(planeSize, planeSize);
-	var splane = new THREE.PlaneGeometry(sPlaneSize, sPlaneSize, sPlaneSegments, sPlaneSegments);
-
-	/**********************************************************************************************
-	 *
-	 * Objetos 3D presentes nas cenas
-	 *
-	 *********************************************************************************************/
-
-	vObj        = new THREE.Mesh(cube,   transparentMaterial);
-	emptyObj    = new THREE.Mesh(cube,   emptyMat);
-	shadowPlane = new THREE.Mesh(splane, shadowMat);
-	emptyPlane  = new THREE.Mesh(plane,  emptyMat);
-
-    var sphereGeometry = new THREE.SphereGeometry(0.15, 32, 32);
-    var sphereMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-    sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-	/**********************************************************************************************
-	 *
-	 * Ajustes de posição, rotação, etc.
-	 *
-	 *********************************************************************************************/
-
-	origLight.position.set(10 * vObjHeight, vObjRatio * vObjHeight / 2, vObjHeight / 2);
-	light.position.set    (10 * vObjHeight, vObjRatio * vObjHeight / 2, vObjHeight / 2);
-	vObj.position.set     (adjustX, vObjRatio * vObjHeight / 2, adjustZ);
-    sphere.position.set(adjustX, vObjRatio * vObjHeight / 2, adjustZ);
-
-    //sphere.updateMatrixWorld(true);
-	//camera.position.set   (0, 9, 12);
-
-	camera.lookAt(new THREE.Vector3(0, 0, 0));
-
-	shadowPlane.receiveShadow = true;
-	vObj.castShadow           = false;
-
-	shadowPlane.rotation.x = -Math.PI / 2;
-	shadowPlane.position.y = -0.05;
-	emptyPlane.rotation.x  = -Math.PI / 2;
-	emptyPlane.position.y  = -0.05;
-
-	/**********************************************************************************************
-	 *
-	 * Ajustes de posição e rotação
-	 *
-	 *********************************************************************************************/
-
-	scene.add(ambientLight.clone());
-
-	scene.add(vObj);
-	scene.add(shadowPlane);
-	scene.add(emptyPlane);
-	scene.add(emptyObj);
 	scene.add(light);
+	//light.position.set(0, 10, 0);
+	//light.intensity = 3.0;
 
-	light.target = emptyObj;
+	//let camera = new THREE.Camera();
+	camera = new THREE.PerspectiveCamera(30,  window.innerWidth / window.innerHeight, 0.1, 1000);
 
-	scene.updateMatrixWorld(true);
-	camera.updateMatrixWorld(true);
+	scene.add( camera );
+	vObj = createVirtualObj();
+	scene.add( vObj );
+	vObj.position.set     (adjustX, vObjRatio * vObjHeight / 2, adjustZ);
+	vObj.castShadow = false;
 
-	light.position.set(0, 10, 0);
-	light.target = emptyObj;
-    renderer.domElement.addEventListener('click', onDocumentMouseClick, false);
+	camera = camera;
+	scene = scene;  
 
+	return [scene, camera];
 }
 
-var selectValue = "0";
+var aux = create_scene();
+scene 	= aux[0];
+camera = aux[1];
+var helper = new THREE.CameraHelper(camera);
+//scene.add(helper);
+
+//-- ALL AR STUFF HERE ---------------------------------------------------------
+export function updateAR()
+{
+   if(AR.source)
+   {
+      if( AR.source.ready === false )	return
+      AR.context.update( AR.source.domElement )
+      scene.visible = camera.visible  
+      return camera;
+   }
+   return null;
+}
+
+function setSource(type, url)
+{
+   AR.source = new THREEx.ArToolkitSource({	
+      sourceType : type,
+      sourceUrl : url,
+   })
+}
+
+export function setARStuff(source)
+{
+   switch (source)
+   {
+      case 'image':
+         setSource('image', "my-images/new_imagem_4.jpg");
+         //setSource('image', "my-images/img_extobj_5.jpeg");
+         break;
+      case 'video':
+         setSource('video', "my-videos/video4.MOV");
+         break;
+      case 'webcam':
+         setSource('webcam', null);
+         break;
+   }   
+   
+   AR.source.init(function onReady(){
+		onResize()
+	});
+   //----------------------------------------------------------------------------
+   // initialize arToolkitContext
+   AR.context = new THREEx.ArToolkitContext({
+      cameraParametersUrl:'data/camera_para.dat',
+      detectionMode: 'mono',
+   })
+   
+   // initialize it
+   AR.context.init(function onCompleted(){
+      camera.projectionMatrix.copy( AR.context.getProjectionMatrix() );
+   })
+   
+   //----------------------------------------------------------------------------
+   // Create a ArMarkerControls
+   new THREEx.ArMarkerControls(AR.context, camera, {	
+		type: "pattern", 
+		patternUrl: "data/kanji.patt",
+      	changeMatrixMode: 'cameraTransformMatrix' 
+   })
+   // as we do changeMatrixMode: 'cameraTransformMatrix', start with invisible scene
+   scene.visible = true   
+}
+
+// Possible sources: 'image', 'video', 'webcam' 
+setARStuff('image'); 
+
+
+var shadowMat = new THREE.ShadowMaterial({
+	opacity: 0.75,
+	side: THREE.DoubleSide,
+});
+var splane = new THREE.PlaneGeometry(sPlaneSize, sPlaneSize, sPlaneSegments, sPlaneSegments);
+shadowPlane = new THREE.Mesh(splane, shadowMat);
+shadowPlane.receiveShadow = true;
+shadowPlane.rotation.x = -Math.PI / 2;
+shadowPlane.position.y = -0.01;
+scene.add(shadowPlane);
 
 document.getElementById("select2").addEventListener("click", async () => {
 	const select = document.getElementById("select2");
@@ -300,13 +211,13 @@ document.getElementById("select2").addEventListener("click", async () => {
               	setSource('webcam',null)
               	break;
         	case '1':
-              	setSource('image','my-images/frame_1.jpg')         
+              	setSource('image','my-images/img_extobj_1.jpeg')         
               	break;
         	case '2':
-              	setSource('image', 'my-images/frame2.jpg')                     
+              	setSource('image', 'my-images/img_extobj_2.jpeg')                     
               	break;
 			case '3':
-				setSource('image','my-images/foto1.png')         
+				setSource('image','my-images/img_extobj_3.jpeg')         
 				break;
         }
 	}
@@ -319,17 +230,16 @@ returnBtn.addEventListener('click', async () => {
         	case '0':
               	setSource('webcam',null)
               	break;
-        	case '1':
-              	setSource('image','my-images/frame_1.jpg')         
-              	break;
-        	case '2':
-              	setSource('image', 'my-images/frame2.jpg')                     
-              	break;
-			case '3':
-				console.log('entrou 3')	
-				setSource('image','my-images/foto1.png')         
+			case '1':
+				setSource('image','my-images/img_extobj_1.jpeg')         
 				break;
-        }
+			case '2':
+				setSource('image', 'my-images/img_extobj_2.jpeg')                     
+				break;
+			case '3':
+				setSource('image','my-images/img_extobj_3.jpeg')         
+				break;
+		  }
 	select.style.display = "block";
 	select2.style.display = "block";
 	submitBtn.style.display = "block";
@@ -338,60 +248,217 @@ returnBtn.addEventListener('click', async () => {
 	light.position.set(0, 10, 0);
 });
 
-document.getElementById("submitButtonInput").addEventListener("click", async () => {
-    camera.updateMatrixWorld(true);
+// Funções utilitárias do OpenCV.js
+function applyGrabCut(img) {
+    let mask = new cv.Mat();
+    let bgdModel = new cv.Mat();
+    let fgdModel = new cv.Mat();
+    let rect = new cv.Rect(10, 10, img.cols - 20, img.rows - 20);
+    cv.grabCut(img, mask, rect, bgdModel, fgdModel, 1, cv.GC_INIT_WITH_RECT);
+    let mask2 = new cv.Mat();
+    cv.compare(mask, new cv.Mat(mask.rows, mask.cols, mask.type(), new cv.Scalar(cv.GC_FGD)), mask2, cv.CMP_EQ);
+    let fg = new cv.Mat(img.size(), img.type());
+    img.copyTo(fg, mask2);
+    return [fg, mask2];
+}
 
+function kmeansSegmentation(image, nb_classes, use_color) {
+    let samples = image.reshape(1, image.cols * image.rows);
+    samples.convertTo(samples, cv.CV_32F);
+    let kmeans = new cv.TermCriteria(cv.TermCriteria_EPS + cv.TermCriteria_MAX_ITER, 10, 1.0);
+    let labels = new cv.Mat();
+    let centers = new cv.Mat();
+    cv.kmeans(samples, nb_classes, labels, kmeans, 10, cv.KMEANS_RANDOM_CENTERS, centers);
+    let segmented = labels.reshape(1, image.rows);
+    segmented.convertTo(segmented, cv.CV_8U);
+    return segmented;
+}
+
+function normalizeSegments(segmented) {
+    let uniqueValues = [...new Set(segmented.data)];
+    let step = Math.floor(255 / uniqueValues.length);
+    let normalizedImage = new cv.Mat(segmented.rows, segmented.cols, segmented.type(), new cv.Scalar(0));
+    for (let i = 0; i < uniqueValues.length; i++) {
+        let mask = new cv.Mat();
+        cv.compare(segmented, uniqueValues[i], mask, cv.CMP_EQ);
+        normalizedImage.setTo(i * step, mask);
+        mask.delete();
+    }
+    return normalizedImage;
+}
+
+function analyzeSegmentsForShadows(image, labels, nb_classes) {
+    let labImage = new cv.Mat();
+    cv.cvtColor(image, labImage, cv.COLOR_BGR2Lab);
+    let shadowMask = new cv.Mat(labels.rows, labels.cols, cv.CV_8U, new cv.Scalar(0));
+    for (let i = 0; i < nb_classes; i++) {
+        let mask = new cv.Mat();
+        cv.compare(labels, i, mask, cv.CMP_EQ);
+        let mean = cv.mean(labImage, mask);
+        if (mean[0] < 50) {
+            shadowMask.setTo(255, mask);
+        }
+        mask.delete();
+    }
+    labImage.delete();
+    return shadowMask;
+}
+
+function combineMasks(segmentationMask, contourMask, color) {
+    let combinedMask = contourMask.clone();
+    let mask = new cv.Mat();
+    cv.compare(segmentationMask, 255, mask, cv.CMP_GE);
+    combinedMask.setTo(color, mask);
+    mask.delete();
+    return combinedMask;
+}
+
+function extractObjectMasks(image) {
+    let binaryImage = new cv.Mat();
+    cv.threshold(image, binaryImage, 127, 255, cv.THRESH_BINARY);
+    let contours = new cv.MatVector();
+    let hierarchy = new cv.Mat();
+    cv.findContours(binaryImage, contours, hierarchy, cv.RETR_CCOMP, cv.CHAIN_APPROX_SIMPLE);
+    let masks = [];
+    for (let i = 0; i < contours.size(); ++i) {
+        let mask = cv.Mat.zeros(binaryImage.rows, binaryImage.cols, cv.CV_8U);
+        cv.drawContours(mask, contours, i, new cv.Scalar(255), cv.FILLED, 8, hierarchy, 0);
+        masks.push(mask);
+    }
+    binaryImage.delete();
+    contours.delete();
+    hierarchy.delete();
+    return masks;
+}
+
+function findLargestObject(masks) {
+    let maxArea = 0;
+    let largestMask = null;
+    for (let mask of masks) {
+        let currentArea = cv.countNonZero(mask);
+        if (currentArea > maxArea) {
+            maxArea = currentArea;
+            largestMask = mask;
+        }
+    }
+    return largestMask;
+}
+
+function calculateCenterOfMass(image) {
+    let moments = cv.moments(image, true);
+    let cx = moments.m10 / moments.m00;
+    let cy = moments.m01 / moments.m00;
+    return [cx, cy];
+}
+
+function combineObjectAndShadowMask(objectMask, shadowMask) {
+    let combinedMask = objectMask.clone();
+    let shadowMask8U = new cv.Mat();
+    shadowMask.convertTo(shadowMask8U, cv.CV_8U);
+    combinedMask.setTo(128, shadowMask8U);
+    shadowMask8U.delete();
+    return combinedMask;
+}
+
+function calculateShadowAngle(objectCenter, shadowCenter) {
+    let dx = shadowCenter[0] - objectCenter[0];
+    let dy = shadowCenter[1] - objectCenter[1];
+    return Math.atan2(dy, dx) * 180 / Math.PI;
+}
+
+function calculateProportion(largestObjectMask) {
+    let rect = cv.boundingRect(largestObjectMask);
+    return rect.width / rect.height;
+}
+
+async function processImageWithOpenCV(imageSrc, maskSrc) {
+    // Carregar a imagem original
+    let imgElement = document.createElement('img');
+    imgElement.src = imageSrc;
+    await imgElement.decode();
+
+    // Carregar a máscara
+    let maskElement = document.createElement('img');
+    maskElement.src = maskSrc;
+    await maskElement.decode();
+
+    // Criar um canvas para desenhar as imagens
+    let canvas = document.createElement('canvas');
+    let ctx = canvas.getContext('2d');
+
+    // Definir o tamanho do canvas
+    canvas.width = imgElement.width;
+    canvas.height = imgElement.height;
+
+    // Desenhar a imagem no canvas
+    ctx.drawImage(imgElement, 0, 0, imgElement.width, imgElement.height);
+    let img = cv.imread(canvas);
+
+    // Desenhar a máscara no canvas
+    ctx.drawImage(maskElement, 0, 0, maskElement.width, maskElement.height);
+    let mask = cv.imread(canvas);
+
+    // Continuar com o processamento
+    let [grabCutImage, grabCutMask] = applyGrabCut(img);
+    let nb_classes = 10;
+    let segmented = kmeansSegmentation(img, nb_classes, true);
+    let normalizedSegmented = normalizeSegments(segmented);
+    let segmentationMask = analyzeSegmentsForShadows(img, segmented, nb_classes);
+    let combinedMask = combineMasks(segmentationMask, grabCutMask, 128);
+    let objectsWithShadowsImage = combineMasks(mask, combinedMask, 0);
+    let objectsWithoutShadow = combineMasks(segmentationMask, objectsWithShadowsImage, 0);
+    objectsWithoutShadow = combineMasks(mask, objectsWithoutShadow, 0);
+    let grabCutMasks = extractObjectMasks(objectsWithoutShadow);
+    let largestObjectMask = findLargestObject(grabCutMasks);
+    let objectCenter = calculateCenterOfMass(largestObjectMask);
+    let combinedMask2 = combineObjectAndShadowMask(largestObjectMask, segmentationMask);
+    let shadowCenter = calculateCenterOfMass(combinedMask2);
+    let shadowAngle = calculateShadowAngle(objectCenter, shadowCenter);
+    let proportion = calculateProportion(largestObjectMask);
+
+    // Deletar as imagens para liberar memória
+    img.delete();
+    mask.delete();
+    grabCutImage.delete();
+    grabCutMask.delete();
+    segmented.delete();
+    normalizedSegmented.delete();
+    segmentationMask.delete();
+    combinedMask.delete();
+    objectsWithShadowsImage.delete();
+    objectsWithoutShadow.delete();
+    largestObjectMask.delete();
+    combinedMask2.delete();
+
+    // Retornar os valores
+    return {
+        objectCenter,
+        shadowCenter,
+        proportion
+    };
+}
+
+document.getElementById("submitButtonInput").addEventListener("click", async () => {
     let value = select.value;
     loaderElement.style.display = "block";
 
     light.position.set(0, 10, 0);
-    renderer.render(mainScene, camera);
 
-    var $form = $("#submitButton");
-    var params = "";
-    var inv = camera.projectionMatrix.clone();
-    inv.getInverse(inv);
-
-    for (var i = 0; i < 16; i++)
-        params += scene.matrix.elements[i] + " ";
-    for (var i = 0; i < 16; i++)
-        params += camera.projectionMatrix.elements[i] + " ";
-    for (var i = 0; i < 16; i++)
-        params += inv.elements[i] + " ";
-    params += renderer.domElement.clientWidth.toString() + " ";
-    params += renderer.domElement.clientHeight.toString() + " ";
-    params += value; // preset, pode ser alterado eventualmente. pode ser 0, 1 ou 2
-
-    var vw, vh;
-    if (arToolkitSource.parameters.sourceType == "webcam" || arToolkitSource.parameters.sourceType == "video") {
-        vw = arToolkitSource.domElement.videoWidth;
-        vh = arToolkitSource.domElement.videoHeight;
-    } else {
-        vw = arToolkitSource.domElement.naturalWidth;
-        vh = arToolkitSource.domElement.naturalHeight;
-    }
-    var w = renderer.domElement.width;
-    var h = renderer.domElement.height;
-    var cw = renderer.domElement.clientWidth;
-    var ch = renderer.domElement.clientHeight;
-    var pw = (cw > ch) ? Math.floor((cw - ch) / 2.0) : 0;
-    var ph = (ch > cw) ? Math.floor((ch - cw) / 2.0) : 0;
-    var pvw = (vw > vh) ? Math.floor((vw - vh) / 2.0) : 0;
-    var pvh = (vh > vw) ? Math.floor((vh - vw) / 2.0) : 0;
+    // Processar a imagem diretamente no navegador
     var canvas = document.createElement("canvas");
     var client = document.createElement("canvas");
     canvas.width = 256;
     canvas.height = 256;
-    client.width = cw;
-    client.height = ch;
+    client.width = window.innerWidth;
+    client.height = window.innerHeight;
     var ctx = canvas.getContext("2d");
     var aux = client.getContext("2d");
-    ctx.drawImage(arToolkitSource.domElement, pvw, pvh, vw - pvw * 2, vh - pvh * 2, 0, 0, 256, 256);
-    aux.drawImage(renderer.domElement, 0, 0, w, h, 0, 0, cw, ch);
-    ctx.drawImage(client, pw, ph, cw - pw * 2, ch - ph * 2, 0, 0, 256, 256);
+    ctx.drawImage(AR.source.domElement, 0, 0, 256, 256);
+    aux.drawImage(renderer.domElement, 0, 0, client.width, client.height, 0, 0, 256, 256);
+    ctx.drawImage(client, 0, 0, client.width, client.height, 0, 0, 256, 256);
     var img = canvas.toDataURL("image/jpeg");
     ctx.clearRect(0, 0, 256, 256);
-    ctx.drawImage(client, pw, ph, cw - pw * 2, ch - ph * 2, 0, 0, 256, 256);
+    ctx.drawImage(client, 0, 0, client.width, client.height, 0, 0, 256, 256);
     var data = ctx.getImageData(0, 0, 256, 256);
     for (var i = 0; i < 256 * 256 * 4; i += 4) {
         if (data.data[i] > 0 || data.data[i + 1] > 0 || data.data[i + 2] > 0) {
@@ -403,173 +470,146 @@ document.getElementById("submitButtonInput").addEventListener("click", async () 
     }
     ctx.putImageData(data, 0, 0);
     var mask = canvas.toDataURL("image/jpeg");
-    var url = $form.attr("action");
-    const start = performance.now();
-    var posting = $.post(url, { scene: params, img: img, mask: mask });
-    posting.done(function (data) {
-        returnBtn.style.display = "block";
-        select3.style.display = "block";
-        loaderElement.style.display = "none";
-        const end = performance.now();
-        const tempoDecorridoMs = end - start;
-        const horas = Math.floor(tempoDecorridoMs / (1000 * 60 * 60));
-        const minutos = Math.floor((tempoDecorridoMs % (1000 * 60 * 60)) / (1000 * 60));
-        const segundos = Math.floor((tempoDecorridoMs % (1000 * 60)) / 1000);
-        const milissegundos = Math.floor(tempoDecorridoMs % 1000);
 
-        console.log(`Tempo de processamento: ${horas}h:${minutos}m:${segundos}s:${milissegundos}ms`);
+    const result = await processImageWithOpenCV(img, mask);
 
-// INICIO TESTES
-data = data.split(" ");
-console.log("Centro de Massa do Objeto: (" + data[0] + ", " + data[1] + ")");
-console.log("Centro de Massa da Sombra: (" + data[2] + ", " + data[3] + ")");
+    // Processar os resultados conforme necessário
+    var object_center = new THREE.Vector2(result.objectCenter[0], result.objectCenter[1]);
+    var shadow_center = new THREE.Vector2(result.shadowCenter[0], result.shadowCenter[1]);
+    var proportion = result.proportion;
 
-var object_center = new THREE.Vector2(parseFloat(data[0]), parseFloat(data[1]));
-var shadow_center = new THREE.Vector2(parseFloat(data[2]), parseFloat(data[3]));
+    // Reescala os pontos para a altura da cena
+    var scaleFactor = window.innerHeight / 256;
+    object_center.x *= scaleFactor;
+    object_center.y *= scaleFactor;
+    shadow_center.x *= scaleFactor;
+    shadow_center.y *= scaleFactor;
 
-// Reescala os pontos para a altura da cena
-var scaleFactor = window.innerHeight / 256;
-object_center.x *= scaleFactor;
-object_center.y *= scaleFactor;
-shadow_center.x *= scaleFactor;
-shadow_center.y *= scaleFactor;
+    console.log("Scale Factor: " + scaleFactor);
+    console.log(object_center);
+    console.log(shadow_center);
 
-console.log(scaleFactor);
-console.log(object_center);
-console.log(shadow_center);
+    // Converte os centros de massa para coordenadas normalizadas
+    object_center.x = (object_center.x / window.innerWidth) * 2 - 1;
+    object_center.y = -(object_center.y / window.innerHeight) * 2 + 1;
+    shadow_center.x = (shadow_center.x / window.innerWidth) * 2 - 1;
+    shadow_center.y = -(shadow_center.y / window.innerHeight) * 2 + 1;
 
-// Converte os centros de massa para coordenadas normalizadas
-object_center.x = (object_center.x / window.innerWidth) * 2 - 1;
-object_center.y = -(object_center.y / window.innerHeight) * 2 + 1;
-shadow_center.x = (shadow_center.x / window.innerWidth) * 2 - 1;
-shadow_center.y = -(shadow_center.y / window.innerHeight) * 2 + 1;
+    console.log("Object_center: " + object_center);
+    console.log("Shadow_center: " + shadow_center);
 
-console.log("Object_center: " + object_center);
-console.log("Shadow_center: " + shadow_center);
+    // Encontra a posição na tela do centro geométrico do cubo
+    var object_geometry_center = vObj.position.clone();
 
-// Encontra a posição na tela do centro geométrico do cubo
-var object_geometry_center = vObj.position.clone();
+    console.log("Object_geometry_center: " + object_geometry_center.x + " " + object_geometry_center.y + " " + object_geometry_center.z);
+    var screenPos = object_geometry_center.clone();
+    screenPos.project(camera);
+    screenPos.x = (screenPos.x * window.innerWidth / 2) + window.innerWidth / 2;
+    screenPos.y = -(screenPos.y * window.innerHeight / 2) + window.innerHeight / 2;
 
-console.log("Object_geometry_center: " + object_geometry_center.x + " " + object_geometry_center.y + " " + object_geometry_center.z);
-var screenPos = object_geometry_center.clone();
-screenPos.project(camera);
-screenPos.x = (screenPos.x * window.innerWidth / 2) + window.innerWidth / 2;
-screenPos.y = -(screenPos.y * window.innerHeight / 2) + window.innerHeight / 2;
+    // Converte a posição em tela para coordenadas normalizadas
+    var screenPos2D = new THREE.Vector2(
+        (screenPos.x / window.innerWidth) * 2 - 1,
+        -(screenPos.y / window.innerHeight) * 2 + 1
+    );
 
-// Converte a posição em tela para coordenadas normalizadas
-var screenPos2D = new THREE.Vector2(
-    (screenPos.x / window.innerWidth) * 2 - 1,
-    -(screenPos.y / window.innerHeight) * 2 + 1
-);
+    console.log("ScreenPos2D: " + screenPos2D.x + " " + screenPos2D.y);
 
-console.log("ScreenPos2D: " + screenPos2D.x + " " + screenPos2D.y);
+    // Calcula a diferença entre a posição em tela do centro geométrico do cubo e o centro de massa do objeto
+    var diff = new THREE.Vector2();
+    diff.subVectors(screenPos2D, object_center);
 
-// Calcula a diferença entre a posição em tela do centro geométrico do cubo e o centro de massa do objeto
-var diff = new THREE.Vector2();
-diff.subVectors(screenPos2D, object_center);
+    console.log("Diff: " + diff.x + " " + diff.y);
 
-console.log("Diff: " + diff.x + " " + diff.y);
+    // Aplica essa diferença ao centro de massa da sombra para obter sua posição em tela
+    var shadow_screen_center = new THREE.Vector2();
+    shadow_screen_center.addVectors(shadow_center, diff);
 
-// Aplica essa diferença ao centro de massa da sombra para obter sua posição em tela
-var shadow_screen_center = new THREE.Vector2();
-shadow_screen_center.addVectors(shadow_center, diff);
+    // Ajuste a posição do ponto de raycasting considerando a proporção
+    let scalee = 1;
+    shadow_screen_center.x *= proportion * scalee;
+    shadow_screen_center.y *= proportion * scalee;
 
-// Faz raycasting para obter a posição 3D correspondente à posição da tela do centro de massa da sombra
-var raycaster = new THREE.Raycaster();
-raycaster.setFromCamera(shadow_screen_center, camera);
-var intersects = raycaster.intersectObject(shadowPlane);
-if (intersects.length > 0) {
-    var intersect = intersects[0];
-    console.log("Interseção do centro de massa da sombra 3D:", intersect.point);
+    let shadow_center_position;
+    // Faz raycasting para obter a posição 3D correspondente à posição da tela do centro de massa da sombra
+    var raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(shadow_screen_center, camera);
+    var intersects = raycaster.intersectObject(shadowPlane);
+    if (intersects.length > 0) {
+        var intersect = intersects[0];
+        console.log("Interseção do centro de massa da sombra 3D:", intersect.point);
 
-    // Adiciona uma esfera para visualizar o centro de massa da sombra
-    addSphereAtPoint(intersect.point, 0x0000ff);  // Azul para sombra
+        // Adiciona uma esfera para visualizar o centro de massa da sombra
+        addSphereAtPoint(intersect.point, 0x0000ff);  // Azul para sombra
+        shadow_center_position = intersect.point;
+        // Adicionar linha visualizando o vetor entre os dois pontos
+        addLineBetweenPoints(object_geometry_center, intersect.point);
 
-    // Adicionar linha visualizando o vetor entre os dois pontos
-    addLineBetweenPoints(object_geometry_center, intersect.point);
+        // Calcular a direção da luz considerando a proporção
+        var lightDirection = new THREE.Vector3();
+        lightDirection.subVectors(intersect.point, object_geometry_center).normalize();
+        var lightTarget = object_geometry_center.clone().add(lightDirection.multiplyScalar(2)); // multiplicar para colocar o target à frente da luz
 
-    // Calcular a direção da luz
-    var lightDirection = new THREE.Vector3();
-    lightDirection.subVectors(intersect.point, object_geometry_center).normalize();
-    var lightTarget = object_geometry_center.clone().add(lightDirection.multiplyScalar(10)); // multiplicar para colocar o target à frente da luz
+        // Definir a posição da luz e seu target, ajustando a posição da luz para trás do objeto
+        var lightPosition = object_geometry_center.clone().sub(lightDirection.multiplyScalar(1)); // ajustar a posição da luz para trás do objeto
 
-    // Definir a posição da luz e seu target
-    light.position.copy(object_geometry_center);
-    light.target.position.copy(lightTarget);
-    light.target.updateMatrixWorld();
-    vObj.castShadow = true;
-} else {
-    console.log("Nenhuma interseção encontrada para a sombra.");
-}
+        light.position.copy(lightPosition);
+        light.target.position.copy(lightTarget);
+        light.target.updateMatrixWorld();
+        // Visualizar a luz
+        var lightHelper = new THREE.DirectionalLightHelper(light, 6); // 5 pode ser ajustado conforme necessário
+        scene.add(lightHelper);
 
-// Raycast para encontrar a interseção do centro do cubo 3D
-var objectRaycaster = new THREE.Raycaster();
-objectRaycaster.setFromCamera(screenPos2D, camera);
-var objectIntersects = objectRaycaster.intersectObject(vObj);
-if (objectIntersects.length > 0) {
-    var objectIntersect = objectIntersects[0];
-    addSphereAtPoint(objectIntersect.point, 0xff00ff);  // Roxo para o centro do objeto
-} else {
-    console.log("Nenhuma interseção encontrada para o centro do objeto.");
-}
+        // Visualizar a direção da luz com uma flecha
+        var arrowHelper = new THREE.ArrowHelper(lightDirection, lightPosition, 10, 0xff0000); // 10 pode ser ajustado conforme necessário, 0xff0000 é a cor vermelha
+        scene.add(arrowHelper);
 
-// Adiciona uma esfera para visualizar o centro de massa do objeto
-addSphereAtPoint(object_geometry_center, 0x00ff00);  // Verde para o objeto
+        vObj.castShadow = true;
+    } else {
+        console.log("Nenhuma interseção encontrada para a sombra.");
+    }
 
-// Adiciona bounding box
-addBoundingBox(vObj);
+    // Adiciona uma esfera para visualizar o centro de massa do objeto
+    addSphereAtPoint(object_geometry_center, 0x00ff00);  // Verde para o objeto
 
-// Debug prints
-console.log("Centro do Cubo 3D:", object_geometry_center);
-console.log("Posição de Tela do Centro do Cubo 3D:", screenPos);
-console.log("Posição de Tela do Centro de Massa da Sombra:", shadow_screen_center);
-console.log("Posição de Tela do Centro de Massa do Objeto:", object_center);
+    // Adiciona bounding box
+    addBoundingBox(vObj);
 
+    // Debug prints
+    console.log("Centro do Cubo 3D:", object_geometry_center);
+    console.log("Posição de Tela do Centro do Cubo 3D:", screenPos);
+    console.log("Posição de Tela do Centro de Massa da Sombra:", shadow_screen_center);
+    console.log("Posição de Tela do Centro de Massa do Objeto:", object_center);
+    console.log("Direção da Luz:", light.position, light.target.position);
 
-// FIM TESTES
-	scene.add(sphere);
-	sphere.position.copy(vObj.position);
-	console.log("Sphere position: " + sphere.position.x + " " + sphere.position.y + " " + sphere.position.z)
-	/* INICIO COMENTARIO
-	var v = new THREE.Vector3(parseFloat(data[0]), parseFloat(data[1]), parseFloat(data[2]));
-	v.multiplyScalar(5);
-	v.add(vObj.position.clone());
-	vObj.castShadow = true;
-	
-	//let vec1 = v;
-	//let vec2 = new THREE.Vector3(-3, 5, -6);
-	//var ang = vec1.angleTo(vec2); // calcula dif angular
-	//console.log("Diferença angular entre vetores: " + radianosParaGraus(ang));
-	console.log("(" + v.x.toFixed(2) + ", " + v.y.toFixed(2) + ", " + v.z.toFixed(2) + ")");
-	light.position.set(v.x, v.y, v.z);
-	console.log(light.position)
-	FIM COMENTARIO */
-	switch (selectValue) {
-		case '0':
-			//setSource('webcam',null)
-			break;
-		case '1':
-			//setSource('image','my-images/imagem_1.jpg')
-			break;
-		case '2':
-			//setSource('image', 'my-images/frame2.jpg')
-			break;
-		case '3':
-			setSource("video", "my-videos/video4.MOV")
-		break;
-	}
-    });
+    // FIM TESTES
+    switch (selectValue) {
+        case '0':
+            //setSource('webcam',null)
+            break;
+        case '1':
+            //setSource('image','my-images/imagem_1.jpg')
+            break;
+        case '2':
+            //setSource('image', 'my-images/frame2.jpg')
+            break;
+        case '3':
+            setSource("video", "my-videos/video4.MOV")
+        break;
+    }
+
     submitBtn.style.display = "none";
     select.style.display = "none";
     select2.style.display = "none";
     select3.style.display = "none";
 
-    posting.fail(function (response) {
-        returnBtn.style.display = "block";
-        loaderElement.style.display = "none";
-        alert('Error: ' + response.responseText);
-    })
-})
+    returnBtn.style.display = "block";
+    loaderElement.style.display = "none";
+});
+
+function radianosParaGraus(radianos) {
+    return radianos * (180 / Math.PI);
+}
 
 function onDocumentMouseClick(event) {
 	event.preventDefault();
@@ -613,19 +653,6 @@ function addBoundingBox(object) {
     scene.add(box);
 }
 
-function getObjectGeometryCenter(object) {
-    var boundingBox = new THREE.Box3().setFromObject(object);
-    var center = new THREE.Vector3();
-    boundingBox.getCenter(center);
-    return center;
-}
-
-function calculateAngle(point1, point2) {
-    var dx = point2.x - point1.x;
-    var dy = point2.y - point1.y;
-    var angle = Math.atan2(dy, dx) * (180 / Math.PI);
-    return angle;
-}
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Funções para carregar objetos GLTF
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -775,35 +802,20 @@ document.getElementById('select3').addEventListener('change', function() {
     }
 });
 
-function radianosParaGraus(radianos) {
-    return radianos * (180 / Math.PI);
-}
 
-function update()
-{
-	// update artoolkit every frame
-	if (arToolkitSource.ready !== false)
-		arToolkitContext.update(arToolkitSource.domElement);
-		scene.visible = camera.visible;
-}
-
-
-function render()
-{
-	renderer.render(mainScene, camera);
-	//renderer.setViewport(0, 240, window.innerWidth, window.innerHeight);
+function render(){
+	updateAR(); 
+	requestAnimationFrame(render);
+	//renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
+	renderer.render(scene, camera);
+	
+	//virtualCamera.visible = false;
 	if(camera.visible){
 		// Copia a posição da câmera real
-		camera.getWorldPosition(camPosition);
-		camera.getWorldQuaternion(camQuaternion);
-		//console.log("Camera position: " + camPosition.x + ", " + camPosition.y + ", " + camPosition.z + ", " + camQuaternion);
+		camera.getWorldPosition(position);
+		camera.getWorldQuaternion(quaternion);
+		//console.log("Camera position: " + position.x + " " + position.y + " " + position.z);
 	}
 }
-
-
-function animate()
-{
-	requestAnimationFrame(animate);
-	update();
-	render();
-}
+		
+render();

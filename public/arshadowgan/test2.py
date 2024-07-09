@@ -1,15 +1,8 @@
-import sys
 import os
 import os.path as osp
 import cv2 as cv
 import numpy as np
-import imutils
-import higra as hg
 import math
-from skimage.segmentation import relabel_sequential
-import matplotlib.pyplot as plt 
-
-from skimage.metrics import structural_similarity as compare_ssim
 from pathlib import Path
 
 source_path = Path(__file__).resolve()
@@ -93,27 +86,6 @@ def apply_grabcut(image):
 
     # A máscara deve ser multiplicada por 255 para visualização correta
     return foreground, mask2 * 255
-
-def create_contours_mask(edges):
-    # Use um kernel menor para a dilatação
-    kernel_dilate = np.ones((3, 3), np.uint8)  # Kernel menor
-    dilation = cv.dilate(edges, kernel_dilate, iterations=1)  # Menos iterações
-
-    # Preenchimento dos buracos dentro dos objetos
-    flood_fill = dilation.copy()
-    h, w = flood_fill.shape[:2]
-    mask = np.zeros((h+2, w+2), np.uint8)
-    cv.floodFill(flood_fill, mask, (0,0), 255)
-
-    # Inverta a imagem preenchida para obter os objetos
-    flood_fill_inv = cv.bitwise_not(flood_fill)
-    object_mask = dilation | flood_fill_inv
-
-    # Aplicar erosão para diminuir a expansão das bordas
-    kernel_erode = np.ones((3, 3), np.uint8)
-    object_mask = cv.erode(object_mask, kernel_erode, iterations=1)
-
-    return object_mask
 
 def combine_masks(segmentation_mask, contour_mask, color = 128):
     # Crie uma cópia da máscara de contornos para manipular
@@ -272,39 +244,6 @@ def find_base_from_center_of_mass(image, center):
 
     return None
 
-
-def find_base_using_contours(image):
-    # Aplicar operações morfológicas para remover ruído
-    kernel = np.ones((5, 5), np.uint8)
-    morph = cv.morphologyEx(image, cv.MORPH_CLOSE, kernel, iterations=2)
-    morph = cv.morphologyEx(morph, cv.MORPH_OPEN, kernel, iterations=2)
-    #cv.imshow('Morphological Operations', morph)
-    cv.waitKey(0)
-    cv.destroyAllWindows()
-
-    # Detectar contornos
-    contours, _ = cv.findContours(morph, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-    if contours:
-        # Encontrar os pontos mais baixos
-        lowest_points = []
-        for contour in contours:
-            for point in contour:
-                if not lowest_points or point[0][1] == lowest_points[0][1]:
-                    lowest_points.append(tuple(point[0]))
-                elif point[0][1] > lowest_points[0][1]:
-                    lowest_points = [tuple(point[0])]
-
-        # Calcular o ponto médio horizontal dos pontos mais baixos
-        base_x = sum([point[0] for point in lowest_points]) // len(lowest_points)
-        base_y = lowest_points[0][1]
-        base_point = (base_x, base_y)
-
-        print(f"Base point: {base_point}")
-        return base_point
-    else:
-        print("No contours detected.")
-        return None
-
 def calculate_proportion(largest_object_mask):
     # Encontrar a bounding box do maior objeto
     x, y, w, h = cv.boundingRect(largest_object_mask)
@@ -312,28 +251,6 @@ def calculate_proportion(largest_object_mask):
     # Calcular a proporção altura/largura
     proportion = w / h
     return proportion
-
-def region_growing(image, seed_point, threshold=15):
-    h, w = image.shape[:2]
-    seed_list = [seed_point]
-    segmented = np.zeros((h, w), np.uint8)
-    segmented[seed_point[1], seed_point[0]] = 255
-    seed_value = image[seed_point[1], seed_point[0]]
-
-    while seed_list:
-        x, y = seed_list.pop(0)
-
-        for dx in range(-1, 2):
-            for dy in range(-1, 2):
-                nx, ny = x + dx, y + dy
-
-                if 0 <= nx < w and 0 <= ny < h and segmented[ny, nx] == 0:
-                    neighbor_value = image[ny, nx]
-                    if abs(int(neighbor_value) - int(seed_value)) < threshold:
-                        segmented[ny, nx] = 255
-                        seed_list.append((nx, ny))
-
-    return segmented
 
 def main():
     if not osp.exists(data_root):
@@ -396,10 +313,6 @@ def main():
         # Pega o centro de massa do maior objeto ##########################################################
         object_center = calculate_center_of_mass(largest_object_mask)
 
-        # Algoritmo de Region Growing ###########################################################################
-        region_growing_mask = region_growing(img_gray, object_center)
-        cv.imwrite(osp.join(output_new_dir, f'{i}_region_growing_mask.png'), region_growing_mask)
-
         # Junta maior objeto com sua sombra ############################################################
         mascara_filtrada = combine_masks(mask, segmentation_mask, 0)
         combined_mask2 = combine_object_and_shadow_mask(largest_object_mask, mascara_filtrada)
@@ -424,68 +337,6 @@ def main():
             cv.imwrite(osp.join("output/Final_Images", f'{i}_final_image.png'), marked_image)
         
         output_image = marked_image
-        
-        # Código Aleksander
-        mask = read_image(osp.join(data_root, 'mask', i), 1)
-        g1 = cv.cvtColor(output_image, cv.COLOR_BGR2GRAY)
-        g2 = cv.cvtColor(((1.0 + read_image(osp.join(data_root, 'noshadow', i), 3)) * 127.5).astype(np.uint8), cv.COLOR_BGR2GRAY)
-        score, diff = compare_ssim(g1, g2, full=True)
-        diff = (diff * 255).astype(np.uint8)
-        diff = cv.subtract(mask.astype(np.uint8), diff)
-        ret, otsu = cv.threshold(diff, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)
-        cnts = cv.findContours(otsu, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-        cnts = imutils.grab_contours(cnts)
-        diff = cv.cvtColor(diff, cv.COLOR_GRAY2RGB)
-        greatest = 0
-        cnt = None
-        for c in cnts:
-            cv.drawContours(diff, [c], -1, (255, 0, 0), 1)
-            dm = np.zeros(otsu.shape, np.uint8)
-            cv.drawContours(dm, [c], -1, 255, -1)
-            area = cv.contourArea(c)
-            mean = cv.mean(diff, mask=dm)[0] * area
-            if mean > greatest:
-                greatest = mean
-                cnt = c
-        if cnt is not None:
-            cp = diff.copy()
-            cv.drawContours(diff, [cnt], -1, (0, 255, 0), 1)
-            cv.drawContours(cp, [cnt], -1, (0, 255, 0), -1)
-            mask = 255 - read_image(osp.join(data_root, 'mask', i), 1).astype(np.uint8)
-            ret, m = cv.threshold(mask, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)
-            cm = cv.findContours(m, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-            cm = imutils.grab_contours(cm)
-
-            dm = np.zeros(otsu.shape, np.uint8)
-            cv.drawContours(dm, cnt, -1, 255, 1)
-            x = 0
-            y = 0
-            p = 0
-            for j in range(0, dm.shape[0] - 1):
-                for k in range(0, dm.shape[1] - 1):
-                    if dm[j, k] == 255:
-                        p += 1
-                        x += j
-                        y += k
-            if p == 0:
-                x = -1
-                y = -1
-            else:
-                aux = x // p
-                x = y // p
-                y = aux
-
-            cv.circle(diff, (x, y), 3, (0, 0, 255), -1)
-        else:
-            x = -1
-            y = -1
-        s = str(x) + " " + str(y) + " "
-        for j in range(256):
-            for k in range(256):
-                if cp[k, j, 0] == 0 and cp[k, j, 1] == 255 and cp[k, j, 2] == 0:
-                    s += str(j) + " " + str(k) + " "
-        #print(s[:-1])
-        cv.imwrite(osp.join(output_dir, 'contours_' + i), diff)
 
 
 if __name__ == '__main__':
