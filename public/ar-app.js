@@ -34,9 +34,9 @@ loaderElement.style.display = "none";
 var selectValue = "0";
 
 renderer = new THREE.WebGLRenderer({
-    preserveDrawingBuffer: true,
-    antialias: true,
-    alpha: true
+	preserveDrawingBuffer: true,
+	antialias: true,
+	alpha: true
 });
 renderer.setClearColor(new THREE.Color('lightgrey'), 0);
 renderer.domElement.style.position = 'absolute';
@@ -45,13 +45,14 @@ renderer.domElement.style.left = '0px';
 renderer.shadowMap.enabled = true;
 renderer.shadowMapSoft = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
-renderer.setSize(window.innerWidth, window.innerHeight);
+//renderer.setSize(1280, 720);
+renderer.setSize(window.innerWidth, window.innerHeight); // Change here to render in low resolution (for example 640 x 480)
 renderer.domElement.addEventListener('click', onDocumentMouseClick, false);
 document.body.appendChild(renderer.domElement);
 
 let AR = {
-    source: null,
-    context: null,
+	source: null,
+	context: null,
 }
 let camera, scene;
 
@@ -67,108 +68,142 @@ window.addEventListener('resize', function(){
 });
 
 function createVirtualObj(){
-    var cube = new THREE.BoxBufferGeometry(vObjHeight, vObjHeight * vObjRatio, vObjHeight);
-    var wood = new THREE.MeshLambertMaterial({map: loader.load("my-textures/face/wood.png")});
+	var cube   = new THREE.BoxBufferGeometry(vObjHeight, vObjHeight * vObjRatio, vObjHeight);
+	var wood = new THREE.MeshLambertMaterial({map: loader.load("my-textures/face/wood.png")});
     var transparentMaterial = new THREE.MeshBasicMaterial({
         map: loader.load("my-textures/face/wood.png"),
+        //color: 0x00ff00,
         transparent: true,
+        //opacity: 0.5,
         opacity: 1,
     });
-    return vObj = new THREE.Mesh(cube, transparentMaterial);
+	return vObj        = new THREE.Mesh(cube,   transparentMaterial);
+
 }
 
-function create_scene() {
-    let scene = new THREE.Scene();
-    origLight = new THREE.DirectionalLight(0xffffff);
-    origLight.castShadow = true;
-    var d = vObjRatio * vObjHeight * 10;
-    origLight.shadow.camera.left = -d;
-    origLight.shadow.camera.right = d;
-    origLight.shadow.camera.top = d;
-    origLight.shadow.camera.bottom = -d;
+function create_scene()
+{
+	let scene = new THREE.Scene();
+	//var ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+	origLight = new THREE.DirectionalLight(0xffffff);
+	origLight.castShadow = true;
+	var d = vObjRatio * vObjHeight * 10;
+	origLight.shadow.camera.left   = -d;
+	origLight.shadow.camera.right  =  d;
+	origLight.shadow.camera.top    =  d;
+	origLight.shadow.camera.bottom = -d;
 
-    origLight.shadow.mapSize.width = 4096;
-    origLight.shadow.mapSize.height = 4096;
+	origLight.shadow.mapSize.width  = 4096;
+	origLight.shadow.mapSize.height = 4096;
 
-    light = origLight.clone();
-    scene.add(light);
+	light = origLight.clone();
+	scene.add(light);
+	//light.position.set(0, 10, 0);
+	//light.intensity = 3.0;
 
-    camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 0.1, 1000);
+	//let camera = new THREE.Camera();
+	camera = new THREE.PerspectiveCamera(30,  window.innerWidth / window.innerHeight, 0.1, 1000);
 
-    scene.add(camera);
-    vObj = createVirtualObj();
-    scene.add(vObj);
-    vObj.position.set(adjustX, vObjRatio * vObjHeight / 2, adjustZ);
-    vObj.castShadow = false;
+	scene.add( camera );
+	vObj = createVirtualObj();
+	scene.add( vObj );
+	vObj.position.set     (adjustX, vObjRatio * vObjHeight / 2, adjustZ);
+	vObj.castShadow = false;
 
-    camera = camera;
-    scene = scene;
+	camera = camera;
+	scene = scene;  
 
-    return [scene, camera];
+	return [scene, camera];
 }
 
 var aux = create_scene();
-scene = aux[0];
+scene 	= aux[0];
 camera = aux[1];
 var helper = new THREE.CameraHelper(camera);
+//scene.add(helper);
 
-export function updateAR() {
-    if (AR.source) {
-        if (AR.source.ready === false) return;
-        AR.context.update(AR.source.domElement);
-        scene.visible = camera.visible;
-        return camera;
-    }
-    return null;
+//-- ALL AR STUFF HERE ---------------------------------------------------------
+export function updateAR()
+{
+   if(AR.source)
+   {
+      if( AR.source.ready === false )	return
+      AR.context.update( AR.source.domElement )
+      scene.visible = camera.visible  
+      return camera;
+   }
+   return null;
 }
 
-function setSource(type, url) {
+function setSource(type, url)
+{
+   AR.source = new THREEx.ArToolkitSource({	
+      sourceType : type,
+      sourceUrl : url,
+   })
+}
+
+function setNewSource(type, url) {
+    if (AR.source) AR.source = null;
+
     AR.source = new THREEx.ArToolkitSource({
         sourceType: type,
         sourceUrl: url,
     });
-}
-
-export function setARStuff(source) {
-    switch (source) {
-        case 'image':
-            setSource('image', "my-images/new_imagem_4.jpg");
-            break;
-        case 'video':
-            setSource('video', "my-videos/video4.MOV");
-            break;
-        case 'webcam':
-            setSource('webcam', null);
-            break;
-    }
-
     AR.source.init(function onReady() {
         onResize();
     });
-
-    AR.context = new THREEx.ArToolkitContext({
-        cameraParametersUrl: 'data/camera_para.dat',
-        detectionMode: 'mono',
-    });
-
-    AR.context.init(function onCompleted() {
-        camera.projectionMatrix.copy(AR.context.getProjectionMatrix());
-    });
-
-    new THREEx.ArMarkerControls(AR.context, camera, {
-        type: "pattern",
-        patternUrl: "data/kanji.patt",
-        changeMatrixMode: 'cameraTransformMatrix'
-    });
-
-    scene.visible = true;
 }
 
-setARStuff('image');
+export function setARStuff(source)
+{
+   switch (source)
+   {
+      case 'image':
+         setSource('image', "my-images/new_imagem_1.jpg");
+         //setSource('image', "my-images/img_extobj_5.jpeg");
+         break;
+      case 'video':
+         setSource('video', "my-videos/video4.MOV");
+         break;
+      case 'webcam':
+         setSource('webcam', null);
+         break;
+   }   
+   
+   AR.source.init(function onReady(){
+		onResize()
+	});
+   //----------------------------------------------------------------------------
+   // initialize arToolkitContext
+   AR.context = new THREEx.ArToolkitContext({
+      cameraParametersUrl:'data/camera_para.dat',
+      detectionMode: 'mono',
+   })
+   
+   // initialize it
+   AR.context.init(function onCompleted(){
+      camera.projectionMatrix.copy( AR.context.getProjectionMatrix() );
+   })
+   
+   //----------------------------------------------------------------------------
+   // Create a ArMarkerControls
+   new THREEx.ArMarkerControls(AR.context, camera, {	
+		type: "pattern", 
+		patternUrl: "data/kanji.patt",
+      	changeMatrixMode: 'cameraTransformMatrix' 
+   })
+   // as we do changeMatrixMode: 'cameraTransformMatrix', start with invisible scene
+   scene.visible = true   
+}
+
+// Possible sources: 'image', 'video', 'webcam' 
+setARStuff('image'); 
+
 
 var shadowMat = new THREE.ShadowMaterial({
-    opacity: 0.75,
-    side: THREE.DoubleSide,
+	opacity: 0.75,
+	side: THREE.DoubleSide,
 });
 var splane = new THREE.PlaneGeometry(sPlaneSize, sPlaneSize, sPlaneSegments, sPlaneSegments);
 shadowPlane = new THREE.Mesh(splane, shadowMat);
@@ -184,17 +219,26 @@ document.getElementById("select2").addEventListener("change", async () => {
         selectValue = value;
         switch (value) {
             case '0':
-                setSource('webcam', null);
+                setNewSource('image', "my-images/new_imagem_1.jpg");
                 break;
             case '1':
-                setSource('image', 'my-images/img_extobj_1.jpeg');
+                setNewSource('image', "my-images/new_imagem_2.jpg");
                 break;
             case '2':
-                setSource('image', 'my-images/img_extobj_2.jpeg');
+                setNewSource('image', "my-images/new_imagem_3.jpg");
                 break;
             case '3':
-                setSource('image', 'my-images/img_extobj_3.jpeg');
+                setNewSource('image', "my-images/new_imagem_4.jpg");
                 break;
+            case '4':
+                setNewSource('image', "my-images/new_imagem_5.jpg");
+                break;
+            case '5':
+                setNewSource('image', 'my-images/img_extobj_1.jpeg');
+                break;
+            case '6':
+                setNewSource('webcam', null);
+                break;      
         }
     }
 });
@@ -203,17 +247,31 @@ returnBtn.addEventListener('click', async () => {
     let value = select2.value;
     switch (value) {
         case '0':
-            setSource('webcam', null);
+            setNewSource('image', "my-images/new_imagem_1.jpg");
             break;
         case '1':
-            setSource('image', 'my-images/img_extobj_1.jpeg');
+            setNewSource('image', "my-images/new_imagem_2.jpg");
             break;
         case '2':
-            setSource('image', 'my-images/img_extobj_2.jpeg');
+            setNewSource('image', "my-images/new_imagem_3.jpg");
             break;
         case '3':
-            setSource('image', 'my-images/img_extobj_3.jpeg');
+            setNewSource('image', "my-images/new_imagem_4.jpg");
             break;
+        case '4':
+            setNewSource('image', "my-images/new_imagem_5.jpg");
+            break;
+        case '5':
+            setNewSource('image', 'my-images/img_extobj_1.jpeg');
+            break;
+        case '6':
+            setNewSource('webcam', null);
+            break;      
+    }
+
+    if(currentFile != 'cube'){
+        scene.remove(currentObject);
+        scene.add(vObj);
     }
     //select.style.display = "block";
     select2.style.display = "block";
@@ -221,6 +279,7 @@ returnBtn.addEventListener('click', async () => {
     select3.style.display = "none";
     returnBtn.style.display = "none";
     light.position.set(0, 10, 0);
+    vObj.castShadow = false;
 });
 
 async function loadPyodideAndPackages() {
@@ -228,6 +287,7 @@ async function loadPyodideAndPackages() {
         indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.1/full/"
     });
     await pyodide.loadPackage("micropip");
+    await pyodide.loadPackage("pillow");  // Adicionado para carregar o pacote Pillow
     await pyodide.runPythonAsync(`
         import micropip
         await micropip.install('numpy')
@@ -240,6 +300,9 @@ const pythonCode = `
 import cv2 as cv
 import numpy as np
 import math
+from PIL import Image
+import io
+import base64
 
 def read_image(image_data, channels):
     nparr = np.frombuffer(image_data, np.uint8)
@@ -270,125 +333,289 @@ def normalize_segments(segmented):
     return normalized_image
 
 def analyze_segments_for_shadows(image, labels, nb_classes):
+    # Convertendo a imagem para o espaço de cor LAB
     lab_image = cv.cvtColor(image, cv.COLOR_BGR2Lab)
     shadow_mask = np.zeros_like(labels, dtype=np.uint8)
+
+    # Análise de cada segmento
     for i in range(nb_classes):
         segment_mask = (labels == i)
         if np.any(segment_mask):
             segment_lab = lab_image[segment_mask]
-            l_channel = segment_lab[:, 0]
+            l_channel = segment_lab[:, 0]  # Componente L* que representa a luminosidade
             mean_l = np.mean(l_channel)
-            if mean_l < 50:
+
+            # Considerar sombra se a luminosidade é muito baixa
+            if mean_l < 50:  # Limiar de luminosidade para detecção de sombras
                 shadow_mask[segment_mask] = 255
+
     return shadow_mask
 
 def apply_grabcut(image):
     if image is None:
         return None
 
+    # Inicializar a máscara e o modelo de background/foreground
     mask = np.zeros(image.shape[:2], np.uint8)
     bgdModel = np.zeros((1, 65), np.float64)
     fgdModel = np.zeros((1, 65), np.float64)
+
+    # Retângulo que cobre a maior parte, mas não toda, da imagem
     rect = (10, 10, image.shape[1] - 20, image.shape[0] - 20)
+
+    # Aplicar GrabCut
     cv.grabCut(image, mask, rect, bgdModel, fgdModel, 15, cv.GC_INIT_WITH_RECT)
+
+    # Transformar a máscara para binário onde o foreground é 1
+    # Pixels com 2 e 0 são background, 1 e 3 são foreground
     mask2 = np.where((mask == 2) | (mask == 0), 0, 1).astype('uint8')
+
+    # Criar a imagem de foreground usando a máscara
     foreground = image * mask2[:, :, np.newaxis]
+
+    # A máscara deve ser multiplicada por 255 para visualização correta
     return foreground, mask2 * 255
 
-def combine_masks(segmentation_mask, contour_mask, color=128):
+def create_contours_mask(edges):
+    # Use um kernel menor para a dilatação
+    kernel_dilate = np.ones((3, 3), np.uint8)  # Kernel menor
+    dilation = cv.dilate(edges, kernel_dilate, iterations=1)  # Menos iterações
+
+    # Preenchimento dos buracos dentro dos objetos
+    flood_fill = dilation.copy()
+    h, w = flood_fill.shape[:2]
+    mask = np.zeros((h+2, w+2), np.uint8)
+    cv.floodFill(flood_fill, mask, (0,0), 255)
+
+    # Inverta a imagem preenchida para obter os objetos
+    flood_fill_inv = cv.bitwise_not(flood_fill)
+    object_mask = dilation | flood_fill_inv
+
+    # Aplicar erosão para diminuir a expansão das bordas
+    kernel_erode = np.ones((3, 3), np.uint8)
+    object_mask = cv.erode(object_mask, kernel_erode, iterations=1)
+
+    return object_mask
+
+def combine_masks(segmentation_mask, contour_mask, color = 128):
+    # Crie uma cópia da máscara de contornos para manipular
     combined_mask = contour_mask.copy()
+
+    # Onde a máscara de segmentação é proximo de branca, defina a máscara combinada para cinza
     combined_mask[segmentation_mask > 200] = color
+
     return combined_mask
 
 def extract_object_masks(image):
+    # Usar a função threshold para garantir que a imagem está binarizada corretamente
     _, binary_image = cv.threshold(image, 127, 255, cv.THRESH_BINARY)
+
+        # Aplicar operações morfológicas para limpar a máscara
     if binary_image is not None:
         kernel = np.ones((5, 5), np.uint8)
+        # Aplicar erosão para remover ruídos finos
         binary_image = cv.erode(binary_image, kernel, iterations=1)
+
+        # Aplicar dilatação para preencher lacunas
         binary_image = cv.dilate(binary_image, kernel, iterations=1)
+
+        # Aplicar erosão para remover ruídos finos
+        #binary_image = cv.erode(binary_image, kernel, iterations=3)
+
+        # Aplicar fechamento para remover ruídos e preencher lacunas
         binary_image = cv.morphologyEx(binary_image, cv.MORPH_CLOSE, kernel)
+        
+    # Encontrar componentes conectados na imagem binarizada
     num_labels, labels = cv.connectedComponents(binary_image)
+
     masks = []
+
+    # Loop para processar cada componente identificado (ignorando o fundo que é o label 0)
     for label in range(1, num_labels):
+        # Criar uma máscara para o objeto atual
         mask = np.where(labels == label, 255, 0).astype(np.uint8)
         masks.append(mask)
+
     return masks
 
 def find_largest_object(masks):
     max_area = 0
     largest_mask = None
+
+    # Percorrer cada máscara no array
     for mask in masks:
+        # Contar os pixels brancos (255)
         current_area = np.count_nonzero(mask == 255)
+
+        # Se a área atual for maior que a área máxima registrada, atualizar
         if current_area > max_area:
             max_area = current_area
             largest_mask = mask
+
+
+
     return largest_mask
 
 def calculate_center_of_mass(image):
+    # Converter para escala de cinza se ainda não for
     if len(image.shape) == 3:
         image = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
+
+    # Encontrar o centro de massa do objeto
     moments = cv.moments(image)
     if moments["m00"] != 0:
         cx = int(moments["m10"] / moments["m00"])
         cy = int(moments["m01"] / moments["m00"])
     else:
-        cx, cy = 0, 0
+        cx, cy = 0, 0  # Centro não encontrado, ou área do objeto é zero
+
     return cx, cy
 
 def create_image_with_center_marks(image, object_center, shadow_center):
+    # Converter para BGR para desenhar a linha em vermelho
     output_image = cv.cvtColor(image, cv.COLOR_GRAY2BGR) if len(image.shape) == 2 else image.copy()
+    
+    # Desenhar o centro de massa do objeto em verde
     cv.circle(output_image, object_center, 5, (0, 255, 0), -1)
+    
+    # Desenhar o centro de massa da sombra em azul
     cv.circle(output_image, shadow_center, 5, (255, 0, 0), -1)
+    
+    # Desenhar uma linha entre o centro de massa do objeto e o centro de massa da sombra
     cv.line(output_image, object_center, shadow_center, (0, 0, 255), 2)
+    
     return output_image
+
 
 def calculate_shadow_angle(object_center, shadow_center):
     ox, oy = object_center
     sx, sy = shadow_center
+    
+    # Calcular o vetor entre o centro do objeto e o centro da sombra
     vector = (sx - ox, sy - oy)
+    
+    # Calcular o ângulo do vetor
     angle = math.degrees(math.atan2(vector[1], vector[0]))
+    
     return angle
 
+
 def find_closest_shadow(object_mask, shadow_mask):
+    # Calcular o centro de massa do objeto
     object_center = calculate_center_of_mass(object_mask)
     object_base = find_base_from_center_of_mass(object_mask, object_center)
     if object_base is None:
         return None
+    
     num_labels, shadow_labels = cv.connectedComponents((shadow_mask == 255).astype(np.uint8))
+
     min_score = float('inf')
     closest_shadow = None
-    for label in range(1, num_labels):
+
+    for label in range(1, num_labels):  # Ignorar o fundo
         shadow_component_mask = (shadow_labels == label).astype(np.uint8) * 255
         shadow_center = calculate_center_of_mass(shadow_component_mask)
         dist = np.sqrt((object_base[0] - shadow_center[0]) ** 2 + (object_base[1] - shadow_center[1]) ** 2)
         area = cv.countNonZero(shadow_component_mask)
-        adjusted_area = area / (np.exp(dist / 100) + 1)
-        score = dist / (adjusted_area + 1)
+        
+        # Calcular o score combinando a distância e o tamanho da sombra com penalização exponencial na distância
+        adjusted_area = area / (np.exp(dist / 100) + 1)  # Ajustar o peso do tamanho com base na distância
+        score = dist / (adjusted_area + 1)  # Adicionando 1 para evitar divisão por zero
+        
         if score < min_score:
             min_score = score
             closest_shadow = shadow_component_mask
+    
+    # Se não encontrar nenhuma sombra, retornar uma máscara vazia
     if closest_shadow is None:
+        #print("None closest shadow detected")
         closest_shadow = np.zeros_like(shadow_mask)
+    
     return closest_shadow
 
 def combine_object_and_shadow_mask(object_mask, shadow_mask):
+    # Encontrar a sombra mais próxima do objeto
     closest_shadow = find_closest_shadow(object_mask, shadow_mask)
+    
+    # Combinar a máscara do objeto com a sombra mais próxima
     combined_mask = object_mask.copy()
-    combined_mask[closest_shadow == 255] = 128
+    combined_mask[closest_shadow == 255] = 128  # Definir a sombra como cinza (valor 128)
+    
     return combined_mask
 
 def find_base_from_center_of_mass(image, center):
     h, w = image.shape
     cx, cy = center
+
+    # Descer verticalmente a partir do centro de massa até encontrar um pixel preto
     for y in range(cy, h):
         if image[y, cx] == 0:
-            return (cx, y - 1)
+            return (cx, y - 1)  # Retornar o pixel branco logo acima do pixel preto
+
     return None
 
+
+def find_base_using_contours(image):
+    # Aplicar operações morfológicas para remover ruído
+    kernel = np.ones((5, 5), np.uint8)
+    morph = cv.morphologyEx(image, cv.MORPH_CLOSE, kernel, iterations=2)
+    morph = cv.morphologyEx(morph, cv.MORPH_OPEN, kernel, iterations=2)
+    #cv.imshow('Morphological Operations', morph)
+    cv.waitKey(0)
+    cv.destroyAllWindows()
+
+    # Detectar contornos
+    contours, _ = cv.findContours(morph, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    if contours:
+        # Encontrar os pontos mais baixos
+        lowest_points = []
+        for contour in contours:
+            for point in contour:
+                if not lowest_points or point[0][1] == lowest_points[0][1]:
+                    lowest_points.append(tuple(point[0]))
+                elif point[0][1] > lowest_points[0][1]:
+                    lowest_points = [tuple(point[0])]
+
+        # Calcular o ponto médio horizontal dos pontos mais baixos
+        base_x = sum([point[0] for point in lowest_points]) // len(lowest_points)
+        base_y = lowest_points[0][1]
+        base_point = (base_x, base_y)
+
+        print(f"Base point: {base_point}")
+        return base_point
+    else:
+        print("No contours detected.")
+        return None
+
 def calculate_proportion(largest_object_mask):
+    # Encontrar a bounding box do maior objeto
     x, y, w, h = cv.boundingRect(largest_object_mask)
+    
+    # Calcular a proporção altura/largura
     proportion = w / h
     return proportion
+
+def region_growing(image, seed_point, threshold=15):
+    h, w = image.shape[:2]
+    seed_list = [seed_point]
+    segmented = np.zeros((h, w), np.uint8)
+    segmented[seed_point[1], seed_point[0]] = 255
+    seed_value = image[seed_point[1], seed_point[0]]
+
+    while seed_list:
+        x, y = seed_list.pop(0)
+
+        for dx in range(-1, 2):
+            for dy in range(-1, 2):
+                nx, ny = x + dx, y + dy
+
+                if 0 <= nx < w and 0 <= ny < h and segmented[ny, nx] == 0:
+                    neighbor_value = image[ny, nx]
+                    if abs(int(neighbor_value) - int(seed_value)) < threshold:
+                        segmented[ny, nx] = 255
+                        seed_list.append((nx, ny))
+
+    return segmented
 
 def process_image(image_data, mask_data):
     image = read_image(image_data, 3)
@@ -401,6 +628,7 @@ def process_image(image_data, mask_data):
     nb_classes = 10
     segmented = kmeans_segmentation(blured_image, nb_classes, use_color=True)
     normalized_segmented = normalize_segments(segmented)
+    segmented_image = cv.applyColorMap(normalized_segmented.astype(np.uint8), cv.COLORMAP_JET)
     segmentation_mask = analyze_segments_for_shadows(blured_image, segmented, nb_classes)
     combined_mask = combine_masks(segmentation_mask, grabCut_mask, 128)
     objectsWithShadowsImage = combine_masks(mask, combined_mask, 0)
@@ -409,17 +637,34 @@ def process_image(image_data, mask_data):
     grabCut_masks = extract_object_masks(objectsWithoutShadow)
     largest_object_mask = find_largest_object(grabCut_masks)
     object_center = calculate_center_of_mass(largest_object_mask)
-    combined_mask2 = combine_object_and_shadow_mask(largest_object_mask, segmentation_mask)
+    mascara_filtrada = combine_masks(mask, segmentation_mask, 0)
+    combined_mask2 = combine_object_and_shadow_mask(largest_object_mask, mascara_filtrada)
     shadow_center = calculate_center_of_mass((combined_mask2 == 128).astype(np.uint8))
     shadow_angle = calculate_shadow_angle(object_center, shadow_center)
     proportion = calculate_proportion(largest_object_mask)
+
+    debug_images = {
+        "image": cv_to_base64(image),
+        "mask": cv_to_base64(mask),
+        "grabCut_mask": cv_to_base64(grabCut_mask),
+        "segmented_image": cv_to_base64(segmented_image),
+        "segmentation_mask": cv_to_base64(segmentation_mask),
+        "combined_mask": cv_to_base64(combined_mask),
+        "combined_mask2": cv_to_base64(combined_mask2),
+    }
+
     result = {
         "objectCenter": list(object_center),
         "shadowCenter": list(shadow_center),
         "shadowAngle": shadow_angle,
-        "proportion": proportion
+        "proportion": proportion,
+        "debugImages": debug_images,
     }
     return result
+
+def cv_to_base64(image):
+    _, buffer = cv.imencode('.png', image)
+    return base64.b64encode(buffer).decode('utf-8')
 `;
 
 async function processImageWithPyodide(imageSrc, maskSrc) {
@@ -473,16 +718,16 @@ document.getElementById("submitButtonInput").addEventListener("click", async () 
         var client = document.createElement("canvas");
         canvas.width = 256;
         canvas.height = 256;
-        client.width = window.innerWidth;
-        client.height = window.innerHeight;
+        client.width = cw;
+        client.height = ch;
         var ctx = canvas.getContext("2d");
         var aux = client.getContext("2d");
-        ctx.drawImage(AR.source.domElement, 0, 0, 256, 256);
-        aux.drawImage(renderer.domElement, 0, 0, window.innerWidth, window.innerHeight, 0, 0, 256, 256);
-        ctx.drawImage(client, 0, 0, 256, 256);
+        ctx.drawImage(AR.source.domElement, pvw, pvh, vw - pvw * 2, vh - pvh * 2, 0, 0, 256, 256);
+        aux.drawImage(renderer.domElement, 0, 0, w, h, 0, 0, cw, ch);
+        ctx.drawImage(client, pw, ph, cw - pw * 2, ch - ph * 2, 0, 0, 256, 256);
         var img = canvas.toDataURL("image/jpeg");
         ctx.clearRect(0, 0, 256, 256);
-        ctx.drawImage(client, 0, 0, 256, 256);
+        ctx.drawImage(client, pw, ph, cw - pw * 2, ch - ph * 2, 0, 0, 256, 256);
         var data = ctx.getImageData(0, 0, 256, 256);
         for (var i = 0; i < 256 * 256 * 4; i += 4) {
             if (data.data[i] > 0 || data.data[i + 1] > 0 || data.data[i + 2] > 0) {
@@ -570,10 +815,10 @@ document.getElementById("submitButtonInput").addEventListener("click", async () 
             console.log("Interseção do centro de massa da sombra 3D:", intersect.point);
 
             // Adiciona uma esfera para visualizar o centro de massa da sombra
-            addSphereAtPoint(intersect.point, 0x0000ff);  // Azul para sombra
+            //addSphereAtPoint(intersect.point, 0x0000ff);  // Azul para sombra
             shadow_center_position = intersect.point;
             // Adicionar linha visualizando o vetor entre os dois pontos
-            addLineBetweenPoints(object_geometry_center, intersect.point);
+            //addLineBetweenPoints(object_geometry_center, intersect.point);
 
             // Calcular a direção da luz considerando a proporção
             var lightDirection = new THREE.Vector3();
@@ -588,11 +833,11 @@ document.getElementById("submitButtonInput").addEventListener("click", async () 
             light.target.updateMatrixWorld();
             // Visualizar a luz
             var lightHelper = new THREE.DirectionalLightHelper(light, 6); // 5 pode ser ajustado conforme necessário
-            scene.add(lightHelper);
+            //scene.add(lightHelper);
 
             // Visualizar a direção da luz com uma flecha
             var arrowHelper = new THREE.ArrowHelper(lightDirection, lightPosition, 10, 0xff0000); // 10 pode ser ajustado conforme necessário, 0xff0000 é a cor vermelha
-            scene.add(arrowHelper);
+            //scene.add(arrowHelper);
 
             vObj.castShadow = true;
         } else {
@@ -600,10 +845,10 @@ document.getElementById("submitButtonInput").addEventListener("click", async () 
         }
 
         // Adiciona uma esfera para visualizar o centro de massa do objeto
-        addSphereAtPoint(object_geometry_center, 0x00ff00);  // Verde para o objeto
+        //addSphereAtPoint(object_geometry_center, 0x00ff00);  // Verde para o objeto
 
         // Adiciona bounding box
-        addBoundingBox(vObj);
+        //addBoundingBox(vObj);
 
         // Debug prints
         console.log("Centro do Cubo 3D:", object_geometry_center);
@@ -611,6 +856,17 @@ document.getElementById("submitButtonInput").addEventListener("click", async () 
         console.log("Posição de Tela do Centro de Massa da Sombra:", shadow_screen_center);
         console.log("Posição de Tela do Centro de Massa do Objeto:", object_center);
         console.log("Direção da Luz:", light.position, light.target.position);
+
+        // Salvar imagens de depuração
+        // const debugImages = result.debugImages;
+        // Object.keys(debugImages).forEach(key => {
+        //     const base64Image = debugImages[key];
+        //     const imgElement = document.createElement("img");
+        //     imgElement.src = "data:image/png;base64," + base64Image;
+        //     imgElement.style.width = "200px";
+        //     imgElement.style.height = "200px";
+        //     document.body.appendChild(imgElement);
+        // });
 
         // FIM TESTES
         switch (selectValue) {
@@ -646,22 +902,22 @@ function radianosParaGraus(radianos) {
 }
 
 function onDocumentMouseClick(event) {
-    event.preventDefault();
+	event.preventDefault();
 
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+	mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+	mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-    ray.setFromCamera(mouse, camera);
+	ray.setFromCamera(mouse, camera);
 
-    var intersects = ray.intersectObjects([shadowPlane, vObj]);
+	var intersects = ray.intersectObjects([shadowPlane, vObj]);
 
-    if (intersects.length > 0) {
-        var intersect = intersects[0];
-        console.log("Interseção no ponto de clique:", intersect.point);
-        addSphereAtPoint(intersect.point, 0xff0000);  // Vermelho para o ponto de clique
-    } else {
-        console.log("Nenhuma interseção encontrada no ponto de clique.");
-    }
+	if (intersects.length > 0) {
+		var intersect = intersects[0];
+		console.log("Interseção no ponto de clique:", intersect.point);
+		addSphereAtPoint(intersect.point, 0xff0000);  // Vermelho para o ponto de clique
+	} else {
+		console.log("Nenhuma interseção encontrada no ponto de clique.");
+	}
 }
 
 function addSphereAtPoint(point, color) {
@@ -696,65 +952,66 @@ var currentFile = null; // Arquivo GLTF atualmente selecionado
 
 function onError() { };
 
-function onProgress(xhr, model) {
-    if (xhr.lengthComputable) {
-        var percentComplete = xhr.loaded / xhr.total * 100;
+function onProgress ( xhr, model ) {
+    if ( xhr.lengthComputable ) {
+      var percentComplete = xhr.loaded / xhr.total * 100;
     }
 }
 
 export function getMaxSize(obj) {
-    var maxSize;
-    var box = new THREE.Box3().setFromObject(obj);
-    var min = box.min;
-    var max = box.max;
-
-    var size = new THREE.Box3();
-    size.x = max.x - min.x;
-    size.y = max.y - min.y;
-    size.z = max.z - min.z;
-
-    if (size.x >= size.y && size.x >= size.z)
-        maxSize = size.x;
-    else {
-        if (size.y >= size.z)
-            maxSize = size.y;
-        else {
-            maxSize = size.z;
-        }
-    }
-    return maxSize;
+	var maxSize;
+	var box = new THREE.Box3().setFromObject(obj);
+	var min = box.min;
+	var max = box.max;
+ 
+	var size = new THREE.Box3();
+	size.x = max.x - min.x;
+	size.y = max.y - min.y;
+	size.z = max.z - min.z;
+ 
+	if (size.x >= size.y && size.x >= size.z)
+	   maxSize = size.x;
+	else {
+	   if (size.y >= size.z)
+		  maxSize = size.y;
+	   else {
+		  maxSize = size.z;
+	   }
+	}
+	return maxSize;
 }
 
 // Normalize scale and multiple by the newScale
 function normalizeAndRescale(obj, newScale) {
-    var scale = getMaxSize(obj);
-    obj.scale.set(newScale * (1.0 / scale),
-        newScale * (1.0 / scale),
-        newScale * (1.0 / scale));
-    return obj;
+	var scale = getMaxSize(obj);
+	obj.scale.set(newScale * (1.0 / scale),
+	  newScale * (1.0 / scale),
+	  newScale * (1.0 / scale));
+	return obj;
+}
+  
+function fixPosition(obj) {
+	// Fix position of the object over the ground plane
+	var box = new THREE.Box3().setFromObject(obj);
+	if (box.min.y > 0)
+	  obj.translateY(-box.min.y);
+	else
+	  obj.translateY(-1 * box.min.y);
+	return obj;
 }
 
-function fixPosition(obj) {
-    // Fix position of the object over the ground plane
-    var box = new THREE.Box3().setFromObject(obj);
-    if (box.min.y > 0)
-        obj.translateY(-box.min.y);
-    else
-        obj.translateY(-1 * box.min.y);
-    return obj;
-}
 
 function loadGLTFFile(file, desiredScale, angle) {
     var loader = new THREE.GLTFLoader();
-    loader.load(file, function (gltf) {
+    loader.load(file, function(gltf) {
         var obj = gltf.scene;
         obj.castShadow = true;
-        obj.traverse(function (child) {
+        obj.traverse(function(child) {
             if (child) {
                 child.castShadow = true;
             }
         });
-        obj.traverse(function (node) {
+        obj.traverse(function(node) {
             if (node.material) node.material.side = THREE.DoubleSide;
         });
 
@@ -770,7 +1027,8 @@ function loadGLTFFile(file, desiredScale, angle) {
     }, onProgress, onError);
 }
 
-document.getElementById('select3').addEventListener('change', function () {
+
+document.getElementById('select3').addEventListener('change', function() {
     var selectedValue = this.value;
     var file;
     var desiredScale = 1;
@@ -785,37 +1043,37 @@ document.getElementById('select3').addEventListener('change', function () {
     switch (selectedValue) {
         case '0':
             currentObject = vObj;
-            desiredScale = 1;
-            file = 'cube'; // Valor especial para o cubo
+			desiredScale = 1;
+			file = 'cube'; // Valor especial para o cubo
             break;
         case '1':
             file = 'assets/objs/basket.glb';
-            desiredScale = 1.5;
+			desiredScale = 1.5;
             break;
         case '2':
             file = 'assets/objs/cubwooden.glb';
-            desiredScale = 2;
+			desiredScale = 2;
             break;
         case '3':
             file = 'assets/objs/dog.glb';
-            desiredScale = 3;
+			desiredScale = 3;
             break;
-        case '4':
-            file = 'assets/objs/house.glb';
-            desiredScale = 2;
-            break;
-        case '5':
-            file = 'assets/objs/statueLaRenommee.glb';
-            desiredScale = 2.5;
-            break;
-        case '6':
-            file = 'assets/objs/woodenGoose.glb';
-            desiredScale = 2.5;
-            break;
+		case '4':
+			file = 'assets/objs/house.glb';
+			desiredScale = 2;
+			break;
+		case '5':
+			file = 'assets/objs/statueLaRenommee.glb';
+			desiredScale = 2.5;
+			break;
+		case '6':
+			file = 'assets/objs/woodenGoose.glb';
+			desiredScale = 2.5;
+			break;
         default:
             currentObject = vObj; // Valor padrão para o cubo
-            desiredScale = 1;
-            file = 'cube';
+			desiredScale = 1;
+			file = 'cube';
     }
 
     // Atualiza o arquivo atualmente selecionado
@@ -834,15 +1092,20 @@ document.getElementById('select3').addEventListener('change', function () {
     }
 });
 
-function render() {
-    updateAR();
-    requestAnimationFrame(render);
-    renderer.render(scene, camera);
 
-    if (camera.visible) {
-        camera.getWorldPosition(position);
-        camera.getWorldQuaternion(quaternion);
-    }
+function render(){
+	updateAR(); 
+	requestAnimationFrame(render);
+	//renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
+	renderer.render(scene, camera);
+	
+	//virtualCamera.visible = false;
+	if(camera.visible){
+		// Copia a posição da câmera real
+		camera.getWorldPosition(position);
+		camera.getWorldQuaternion(quaternion);
+		//console.log("Camera position: " + position.x + " " + position.y + " " + position.z);
+	}
 }
-
+		
 render();
