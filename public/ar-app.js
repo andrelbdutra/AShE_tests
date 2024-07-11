@@ -234,9 +234,39 @@ document.getElementById("select2").addEventListener("change", async () => {
                 setNewSource('image', "my-images/new_imagem_5.jpg");
                 break;
             case '5':
-                setNewSource('image', 'my-images/img_extobj_1.jpeg');
+                setNewSource('image', "my-images/new_imagem_6.jpg");
                 break;
             case '6':
+                setNewSource('image', "my-images/new_imagem_7.jpg");
+                break;
+            case '7':
+                setNewSource('image', "my-images/new_imagem_8.jpg");
+                break;
+            case '8':
+                setNewSource('image', "my-images/new_imagem_9.jpg");
+                break;
+            case '9':
+                setNewSource('image', "my-images/new_imagem_10.jpg");
+                break;
+            case '10':
+                setNewSource('image', 'my-images/img_extobj_1.jpeg');
+                break;
+            case '11':
+                setNewSource('image', 'my-images/img_extobj_2.jpeg');
+                break;
+            case '12':
+                setNewSource('image', 'my-images/img_extobj_3.jpeg');
+                break;
+            case '13':
+                setNewSource('image', 'my-images/img_extobj_4.jpeg');
+                break;
+            case '14':
+                setNewSource('image', 'my-images/img_extobj_5.jpeg');
+                break;
+            case '15':
+                setNewSource('image', 'my-images/img_extobj_6.jpeg');
+                break;
+            case '16':
                 setNewSource('webcam', null);
                 break;      
         }
@@ -250,7 +280,7 @@ returnBtn.addEventListener('click', async () => {
             setNewSource('image', "my-images/new_imagem_1.jpg");
             break;
         case '1':
-            setNewSource('image', "my-images/new_imagem_2.jpg");
+            setNewSource('image', "my-images/new_imagem_2.jpg"); //quebra
             break;
         case '2':
             setNewSource('image', "my-images/new_imagem_3.jpg");
@@ -259,12 +289,42 @@ returnBtn.addEventListener('click', async () => {
             setNewSource('image', "my-images/new_imagem_4.jpg");
             break;
         case '4':
-            setNewSource('image', "my-images/new_imagem_5.jpg");
+            setNewSource('image', "my-images/new_imagem_5.jpg"); // as vezes quebra
             break;
         case '5':
-            setNewSource('image', 'my-images/img_extobj_1.jpeg');
+            setNewSource('image', "my-images/new_imagem_6.jpg");
             break;
         case '6':
+            setNewSource('image', "my-images/new_imagem_7.jpg");
+            break;
+        case '7':
+            setNewSource('image', "my-images/new_imagem_8.jpg"); // quebra
+            break;
+        case '8':
+            setNewSource('image', "my-images/new_imagem_9.jpg");
+            break;
+        case '9':
+            setNewSource('image', "my-images/new_imagem_10.jpg"); // ruim
+            break;
+        case '10':
+            setNewSource('image', 'my-images/img_extobj_1.jpeg');
+            break;
+        case '11':
+            setNewSource('image', 'my-images/img_extobj_2.jpeg'); //quebra
+            break;
+        case '12':
+            setNewSource('image', 'my-images/img_extobj_3.jpeg');
+            break;
+        case '13':
+            setNewSource('image', 'my-images/img_extobj_4.jpeg');
+            break;
+        case '14':
+            setNewSource('image', 'my-images/img_extobj_5.jpeg'); // ruim
+            break;
+        case '15':
+            setNewSource('image', 'my-images/img_extobj_6.jpeg');
+            break;
+        case '16':
             setNewSource('webcam', null);
             break;      
     }
@@ -519,7 +579,7 @@ def find_closest_shadow(object_mask, shadow_mask):
         area = cv.countNonZero(shadow_component_mask)
         
         # Calcular o score combinando a distância e o tamanho da sombra com penalização exponencial na distância
-        adjusted_area = area / (np.exp(dist / 100) + 1)  # Ajustar o peso do tamanho com base na distância
+        adjusted_area = area / (np.exp(dist / 100) + 10)  # Ajustar o peso do tamanho com base na distância
         score = dist / (adjusted_area + 1)  # Adicionando 1 para evitar divisão por zero
         
         if score < min_score:
@@ -625,7 +685,7 @@ def process_image(image_data, mask_data):
     img_blur = cv.GaussianBlur(masked_img, (3, 3), 0)
     blured_image = cv.GaussianBlur(image, (5, 5), 0)
     grabCut_image, grabCut_mask = apply_grabcut(blured_image)
-    nb_classes = 10
+    nb_classes = 15
     segmented = kmeans_segmentation(blured_image, nb_classes, use_color=True)
     normalized_segmented = normalize_segments(segmented)
     segmented_image = cv.applyColorMap(normalized_segmented.astype(np.uint8), cv.COLORMAP_JET)
@@ -642,12 +702,12 @@ def process_image(image_data, mask_data):
     shadow_center = calculate_center_of_mass((combined_mask2 == 128).astype(np.uint8))
     shadow_angle = calculate_shadow_angle(object_center, shadow_center)
     proportion = calculate_proportion(largest_object_mask)
+    marked_image = create_image_with_center_marks(combined_mask2, object_center, shadow_center)
 
     debug_images = {
-        "image": cv_to_base64(image),
-        "mask": cv_to_base64(mask),
         "grabCut_mask": cv_to_base64(grabCut_mask),
         "segmented_image": cv_to_base64(segmented_image),
+        "marked_image": cv_to_base64(marked_image),
         "segmentation_mask": cv_to_base64(segmentation_mask),
         "combined_mask": cv_to_base64(combined_mask),
         "combined_mask2": cv_to_base64(combined_mask2),
@@ -857,7 +917,7 @@ document.getElementById("submitButtonInput").addEventListener("click", async () 
         console.log("Posição de Tela do Centro de Massa do Objeto:", object_center);
         console.log("Direção da Luz:", light.position, light.target.position);
 
-        // Salvar imagens de depuração
+        //Salvar imagens de depuração
         // const debugImages = result.debugImages;
         // Object.keys(debugImages).forEach(key => {
         //     const base64Image = debugImages[key];
