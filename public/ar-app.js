@@ -341,6 +341,8 @@ returnBtn.addEventListener('click', async () => {
     select2.style.display = "block";
     submitBtn.style.display = "block";
     select3.style.display = "none";
+    select3.value = "0";
+    currentObject = vObj;
     returnBtn.style.display = "none";
     light.position.set(0, 10, 0);
     vObj.castShadow = false;
@@ -955,22 +957,6 @@ document.getElementById("submitButtonInput").addEventListener("click", async () 
         //     document.body.appendChild(imgElement);
         // });
 
-        // FIM TESTES
-        switch (selectValue) {
-            case '0':
-                //setSource('webcam',null)
-                break;
-            case '1':
-                //setSource('image','my-images/imagem_1.jpg')
-                break;
-            case '2':
-                //setSource('image', 'my-images/frame2.jpg')
-                break;
-            case '3':
-                setSource("video", "my-videos/video4.MOV")
-            break;
-        }
-
         submitBtn.style.display = "none";
         //select.style.display = "none";
         select2.style.display = "none";
@@ -1140,24 +1126,21 @@ document.getElementById('select3').addEventListener('change', function() {
 			desiredScale = 1.5;
             break;
         case '2':
-            file = 'assets/objs/cubwooden.glb';
-			desiredScale = 2;
+			file = 'assets/objs/woodenGoose.glb';
+			desiredScale = 2.5;
             break;
         case '3':
-            file = 'assets/objs/dog.glb';
-			desiredScale = 3;
+            file = 'assets/objs/windmill.glb';
+            angle = 270;
+			desiredScale = 2;
             break;
 		case '4':
-			file = 'assets/objs/house.glb';
-			desiredScale = 2;
-			break;
-		case '5':
 			file = 'assets/objs/statueLaRenommee.glb';
 			desiredScale = 2.5;
 			break;
-		case '6':
-			file = 'assets/objs/woodenGoose.glb';
-			desiredScale = 2.5;
+		case '5':
+			file = 'assets/objs/statue2.glb';
+			desiredScale = 2;
 			break;
         default:
             currentObject = vObj; // Valor padrão para o cubo
