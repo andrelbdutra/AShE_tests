@@ -19,10 +19,13 @@ var adjustX = 0.00;
 var adjustZ = 0.00;
 var done = false;
 
+const loaderContainer = document.createElement("div");
+loaderContainer.setAttribute("class", "loader-container");
 const loaderElement = document.createElement("div");
 loaderElement.setAttribute("class", "loader");
 loaderElement.setAttribute("id", "loader");
-document.body.appendChild(loaderElement);
+loaderContainer.appendChild(loaderElement);
+document.body.appendChild(loaderContainer);
 //const select = document.getElementById("select");
 const submitBtn = document.getElementById("submitButton");
 const returnBtn = document.getElementById("returnButton");
@@ -93,8 +96,8 @@ function create_scene()
 	origLight.shadow.camera.top    =  d;
 	origLight.shadow.camera.bottom = -d;
 
-	origLight.shadow.mapSize.width  = 4096;
-	origLight.shadow.mapSize.height = 4096;
+	origLight.shadow.mapSize.width  = 2048;
+	origLight.shadow.mapSize.height = 2048;
 
 	light = origLight.clone();
 	scene.add(light);
@@ -198,7 +201,8 @@ export function setARStuff(source)
 }
 
 // Possible sources: 'image', 'video', 'webcam' 
-setARStuff('image'); 
+//setARStuff('image'); 
+setARStuff('webcam'); 
 
 
 var shadowMat = new THREE.ShadowMaterial({
@@ -219,10 +223,10 @@ document.getElementById("select2").addEventListener("change", async () => {
         selectValue = value;
         switch (value) {
             case '0':
-                setNewSource('image', "my-images/new_imagem_1.jpg");
+                setNewSource('webcam', null);
                 break;
             case '1':
-                setNewSource('image', "my-images/new_imagem_2.jpg");
+                setNewSource('image', "my-images/new_imagem_1.jpg"); 
                 break;
             case '2':
                 setNewSource('image', "my-images/new_imagem_3.jpg");
@@ -231,43 +235,43 @@ document.getElementById("select2").addEventListener("change", async () => {
                 setNewSource('image', "my-images/new_imagem_4.jpg");
                 break;
             case '4':
-                setNewSource('image', "my-images/new_imagem_5.jpg");
+                setNewSource('image', "my-images/new_imagem_6.jpg"); 
                 break;
             case '5':
-                setNewSource('image', "my-images/new_imagem_6.jpg");
-                break;
-            case '6':
                 setNewSource('image', "my-images/new_imagem_7.jpg");
                 break;
-            case '7':
+            case '6':
                 setNewSource('image', "my-images/new_imagem_8.jpg");
                 break;
+            case '7':
+                setNewSource('image', "my-images/new_imagem_9.jpg"); 
+                break;
             case '8':
-                setNewSource('image', "my-images/new_imagem_9.jpg");
+                setNewSource('image', "my-images/new_imagem_10.jpg"); 
                 break;
             case '9':
-                setNewSource('image', "my-images/new_imagem_10.jpg");
-                break;
-            case '10':
                 setNewSource('image', 'my-images/img_extobj_1.jpeg');
                 break;
-            case '11':
-                setNewSource('image', 'my-images/img_extobj_2.jpeg');
-                break;
-            case '12':
+            case '10':
                 setNewSource('image', 'my-images/img_extobj_3.jpeg');
                 break;
-            case '13':
-                setNewSource('image', 'my-images/img_extobj_4.jpeg');
+            case '11':
+                setNewSource('image', 'my-images/img_extobj_4.jpeg'); 
                 break;
-            case '14':
+            case '12':
                 setNewSource('image', 'my-images/img_extobj_5.jpeg');
                 break;
-            case '15':
+            case '13':
                 setNewSource('image', 'my-images/img_extobj_6.jpeg');
                 break;
+            case '14':
+                setNewSource('image', 'my-images/img_extobj_1.jpeg'); 
+                break;
+            case '15':
+                setNewSource('image', 'my-images/img_extobj_1.jpeg');
+                break;
             case '16':
-                setNewSource('webcam', null);
+                setNewSource('image', 'my-images/img_extobj_1.jpeg');
                 break;      
         }
     }
@@ -277,10 +281,10 @@ returnBtn.addEventListener('click', async () => {
     let value = select2.value;
     switch (value) {
         case '0':
-            setNewSource('image', "my-images/new_imagem_1.jpg");
+            setNewSource('webcam', null);
             break;
         case '1':
-            setNewSource('image', "my-images/new_imagem_2.jpg"); //quebra
+            setNewSource('image', "my-images/new_imagem_1.jpg"); 
             break;
         case '2':
             setNewSource('image', "my-images/new_imagem_3.jpg");
@@ -289,43 +293,43 @@ returnBtn.addEventListener('click', async () => {
             setNewSource('image', "my-images/new_imagem_4.jpg");
             break;
         case '4':
-            setNewSource('image', "my-images/new_imagem_5.jpg"); // as vezes quebra
+            setNewSource('image', "my-images/new_imagem_6.jpg"); 
             break;
         case '5':
-            setNewSource('image', "my-images/new_imagem_6.jpg");
-            break;
-        case '6':
             setNewSource('image', "my-images/new_imagem_7.jpg");
             break;
+        case '6':
+            setNewSource('image', "my-images/new_imagem_8.jpg");
+            break;
         case '7':
-            setNewSource('image', "my-images/new_imagem_8.jpg"); // quebra
+            setNewSource('image', "my-images/new_imagem_9.jpg"); 
             break;
         case '8':
-            setNewSource('image', "my-images/new_imagem_9.jpg");
+            setNewSource('image', "my-images/new_imagem_10.jpg"); 
             break;
         case '9':
-            setNewSource('image', "my-images/new_imagem_10.jpg"); // ruim
-            break;
-        case '10':
             setNewSource('image', 'my-images/img_extobj_1.jpeg');
             break;
-        case '11':
-            setNewSource('image', 'my-images/img_extobj_2.jpeg'); //quebra
-            break;
-        case '12':
+        case '10':
             setNewSource('image', 'my-images/img_extobj_3.jpeg');
             break;
-        case '13':
+        case '11':
             setNewSource('image', 'my-images/img_extobj_4.jpeg');
             break;
-        case '14':
-            setNewSource('image', 'my-images/img_extobj_5.jpeg'); // ruim
+        case '12':
+            setNewSource('image', 'my-images/img_extobj_5.jpeg');
             break;
-        case '15':
+        case '13':
             setNewSource('image', 'my-images/img_extobj_6.jpeg');
             break;
+        case '14':
+            setNewSource('image', 'my-images/img_extobj_1.jpeg'); 
+            break;
+        case '15':
+            setNewSource('image', 'my-images/img_extobj_1.jpeg');
+            break;
         case '16':
-            setNewSource('webcam', null);
+            setNewSource('image', 'my-images/img_extobj_1.jpeg');
             break;      
     }
 
@@ -342,10 +346,19 @@ returnBtn.addEventListener('click', async () => {
     vObj.castShadow = false;
 });
 
+// Função para atualizar a barra de progresso
+function updateProgressBar(value, text) {
+    const progressBar = document.getElementById("progressBar");
+    progressBar.style.width = value + "%";
+    progressBar.innerText = text;
+}
+
 async function loadPyodideAndPackages() {
+    updateProgressBar(10, "Carregando Pyodide...");
     let pyodide = await loadPyodide({
         indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.1/full/"
     });
+    updateProgressBar(30, "Carregando pacotes...");
     await pyodide.loadPackage("micropip");
     await pyodide.loadPackage("pillow");  // Adicionado para carregar o pacote Pillow
     await pyodide.runPythonAsync(`
@@ -353,6 +366,7 @@ async function loadPyodideAndPackages() {
         await micropip.install('numpy')
         await micropip.install('opencv-python')
     `);
+    updateProgressBar(60, "Pacotes carregados");
     return pyodide;
 }
 
@@ -728,9 +742,10 @@ def cv_to_base64(image):
 `;
 
 async function processImageWithPyodide(imageSrc, maskSrc) {
+    updateProgressBar(70, "Processando imagem...");
     const pyodide = await loadPyodideAndPackages();
     await pyodide.runPythonAsync(pythonCode);
-
+    
     const imageResponse = await fetch(imageSrc);
     const imageData = await imageResponse.arrayBuffer();
 
@@ -739,7 +754,8 @@ async function processImageWithPyodide(imageSrc, maskSrc) {
 
     pyodide.globals.set("image_data", pyodide.toPy(new Uint8Array(imageData)));
     pyodide.globals.set("mask_data", pyodide.toPy(new Uint8Array(maskData)));
-
+    
+    updateProgressBar(90, "Executando script Python...");
     const result = pyodide.runPython(`
         result = process_image(image_data, mask_data)
         result
@@ -756,6 +772,9 @@ document.getElementById("submitButtonInput").addEventListener("click", async () 
         submitBtn.style.display = "none";
 
         light.position.set(0, 10, 0);
+        const progressContainer = document.getElementById("progressContainer");
+        progressContainer.style.display = "block";
+        updateProgressBar(0, "Inicializando...");
 
         var vw, vh;
         if (AR.source.parameters.sourceType == "webcam" || AR.source.parameters.sourceType == "video") {
@@ -804,6 +823,7 @@ document.getElementById("submitButtonInput").addEventListener("click", async () 
         if (!result) {
             throw new Error("Erro ao processar a imagem com OpenCV.");
         }
+        updateProgressBar(95, "Atualizando visualização...");
 
         // Processar os resultados conforme necessário
         var object_center = new THREE.Vector2(result.objectCenter[0], result.objectCenter[1]);
@@ -891,6 +911,8 @@ document.getElementById("submitButtonInput").addEventListener("click", async () 
             light.position.copy(lightPosition);
             light.target.position.copy(lightTarget);
             light.target.updateMatrixWorld();
+            updateProgressBar(100, "Fim...");
+
             // Visualizar a luz
             var lightHelper = new THREE.DirectionalLightHelper(light, 6); // 5 pode ser ajustado conforme necessário
             //scene.add(lightHelper);
@@ -951,9 +973,11 @@ document.getElementById("submitButtonInput").addEventListener("click", async () 
         select3.style.display = "block";
         returnBtn.style.display = "block";
         loaderElement.style.display = "none";
+        document.getElementById('progressContainer').style.display = 'none';
     } catch (error) {
         console.error(error);
         loaderElement.style.display = "none";
+        document.getElementById('progressContainer').style.display = 'none';
     }
 });
 
@@ -974,7 +998,7 @@ function onDocumentMouseClick(event) {
 	if (intersects.length > 0) {
 		var intersect = intersects[0];
 		console.log("Interseção no ponto de clique:", intersect.point);
-		addSphereAtPoint(intersect.point, 0xff0000);  // Vermelho para o ponto de clique
+		//addSphereAtPoint(intersect.point, 0xff0000);  // Vermelho para o ponto de clique
 	} else {
 		console.log("Nenhuma interseção encontrada no ponto de clique.");
 	}

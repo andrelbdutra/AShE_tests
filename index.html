@@ -50,31 +50,30 @@
         <div class="row floating-select2">
           <div class="col-2">
             <select id="select2" class="form-select" aria-label="Default select example">
-              <option id="selectOption" value="0" selected>A - 2cub + 1esf</option>
-              <option id="selectOption" value="1">A - 1cub + 1esf</option>
+              <option id="selectOption" value="0" selected>camera</option>
+              <option id="selectOption" value="1" >A - 2cub + 1esf</option>
               <option id="selectOption" value="2">A - 1cub + 1con</option>
               <option id="selectOption" value="3">A - 1cub + 1esf</option>
-              <option id="selectOption" value="4">A - 2cub</option>
-              <option id="selectOption" value="5">A - 1cub</option>
-              <option id="selectOption" value="6">A - 1cub + 1cil</option>
-              <option id="selectOption" value="7">A - 1cub + 1con</option>
-              <option id="selectOption" value="8">A - 1cub + 1esf</option>
-              <option id="selectOption" value="9">A - 1cub + 1cil</option>
-              <option id="selectOption" value="10">R - 1copo + algodão</option>
-              <option id="selectOption" value="11">R - 1copo + chão</option>
-              <option id="selectOption" value="12">R - 1copo + pano</option>
-              <option id="selectOption" value="13">R - 1copo + mesa</option>
-              <option id="selectOption" value="14">R - 1copo + tecido</option>
-              <option id="selectOption" value="15">R - 1copo + chão</option>
-              <option id="selectOption" value="16">camera</option>
+              <option id="selectOption" value="4">A - 1cub</option>
+              <option id="selectOption" value="5">A - 1cub + 1cil</option>
+              <option id="selectOption" value="6">A - 1cub + 1con</option>
+              <option id="selectOption" value="7">A - 1cub + 1esf</option>
+              <option id="selectOption" value="8">A - 1cub + 1cil</option>
+              <option id="selectOption" value="9">R - 1copo + algodão</option>
+              <option id="selectOption" value="10">R - 1copo + pano</option>
+              <option id="selectOption" value="11">R - 1copo + mesa</option>
+              <option id="selectOption" value="12">R - 1copo + tecido</option>
+              <option id="selectOption" value="13">R - 1copo + chão</option>
+              <option id="selectOption" value="14">R - </option>
+              <option id="selectOption" value="15">R - </option>
+              <option id="selectOption" value="16">R - </option>
             </select>
           </div>
         </div>
-        <!--<button action="https://192.168.100.5:3000/threejs/" method="POST" onclick="sendToServer();" id="takePhotoBtn" class="material-icons floating-btn-take-photo">photo_camera</button>-->
         <div class="floating-sendBtn">
           <form id="submitButton">
             <input type="text" name="scene" style="display: none">
-            <input class="floating-btn-take-photo material-icons" id="submitButtonInput"type="button" value="photo_camera">
+            <input class="material-symbols-outlined material-icons" id="submitButtonInput"type="button" value="start">
           </form>
         </div>
         <div id="result"></div>
@@ -92,7 +91,9 @@
             </select>
           </div>
         </div>
-
+        <div class="progress" id="progressContainer" style="height: 30px; display: none;">
+            <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" role="progressbar" style="width: 0%;"></div>
+        </div>
         <!--<button id="switchCameraBtn" class="material-icons floating-btn-switch-camera">switch_camera</button>-->
         <!--<canvas id="floating-canvas" class="floating-canvas"></canvas>-->
     <!--<script type="module" src="./arModule.js"></script>-->
