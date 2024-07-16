@@ -353,22 +353,24 @@ function updateProgressBar(value, text) {
     progressBar.innerText = text;
 }
 
+let pyodideReady = false;
+let pyodide;
+
 async function loadPyodideAndPackages() {
-    updateProgressBar(10, "Carregando Pyodide...");
-    let pyodide = await loadPyodide({
+    pyodide = await loadPyodide({
         indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.1/full/"
     });
-    updateProgressBar(30, "Carregando pacotes...");
     await pyodide.loadPackage("micropip");
-    await pyodide.loadPackage("pillow");  // Adicionado para carregar o pacote Pillow
+    await pyodide.loadPackage("pillow");
     await pyodide.runPythonAsync(`
         import micropip
         await micropip.install('numpy')
         await micropip.install('opencv-python')
     `);
-    updateProgressBar(60, "Pacotes carregados");
-    return pyodide;
+    pyodideReady = true;
 }
+
+loadPyodideAndPackages();
 
 const pythonCode = `
 import cv2 as cv
@@ -742,8 +744,10 @@ def cv_to_base64(image):
 `;
 
 async function processImageWithPyodide(imageSrc, maskSrc) {
+    if (!pyodideReady) {
+        await loadPyodideAndPackages();
+    }
     updateProgressBar(70, "Processando imagem...");
-    const pyodide = await loadPyodideAndPackages();
     await pyodide.runPythonAsync(pythonCode);
     
     const imageResponse = await fetch(imageSrc);
@@ -818,7 +822,8 @@ document.getElementById("submitButtonInput").addEventListener("click", async () 
         }
         ctx.putImageData(data, 0, 0);
         var mask = canvas.toDataURL("image/jpeg");
-
+        
+        updateProgressBar(30, "Iniciando Pyodide...");
         const result = await processImageWithPyodide(img, mask);
         if (!result) {
             throw new Error("Erro ao processar a imagem com OpenCV.");
