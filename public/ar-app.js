@@ -9,6 +9,7 @@ var emptyPlane;
 var ray = new THREE.Raycaster();
 var point = new THREE.Vector2();
 var loader = new THREE.TextureLoader();
+var clock = new THREE.Clock();
 
 var planeSize = 150.00;
 var sPlaneSize = 150.00;
@@ -1024,6 +1025,7 @@ function addBoundingBox(object) {
 var loadedObjects = {};
 var currentObject = vObj; // Inicializa com o cubo como objeto padrão
 var currentFile = null; // Arquivo GLTF atualmente selecionado
+var mixer = new Array();
 
 function onError() { };
 
@@ -1075,8 +1077,7 @@ function fixPosition(obj) {
 	return obj;
 }
 
-
-function loadGLTFFile(file, desiredScale, angle) {
+function loadGLTFFile(file, desiredScale, angle, animated='false') {
     var loader = new THREE.GLTFLoader();
     loader.load(file, function(gltf) {
         var obj = gltf.scene;
@@ -1099,6 +1100,12 @@ function loadGLTFFile(file, desiredScale, angle) {
             currentObject = obj;
             scene.add(currentObject);
         }
+        if(animated === 'true') {
+            // Create animationMixer and push it in the array of mixers
+            var mixerLocal = new THREE.AnimationMixer(obj);
+            mixerLocal.clipAction( gltf.animations[0] ).play();
+            mixer.push(mixerLocal);
+        }
     }, onProgress, onError);
 }
 
@@ -1108,6 +1115,7 @@ document.getElementById('select3').addEventListener('change', function() {
     var file;
     var desiredScale = 1;
     var angle = 0;
+    var animated = 'false';
 
     // Remove o objeto atualmente exibido
     if (currentObject) {
@@ -1119,32 +1127,39 @@ document.getElementById('select3').addEventListener('change', function() {
         case '0':
             currentObject = vObj;
 			desiredScale = 1;
+            animated = 'false';
 			file = 'cube'; // Valor especial para o cubo
             break;
         case '1':
             file = 'assets/objs/basket.glb';
 			desiredScale = 1.5;
+            animated = 'false';
             break;
         case '2':
 			file = 'assets/objs/woodenGoose.glb';
 			desiredScale = 2.5;
+            animated = 'false';
             break;
         case '3':
             file = 'assets/objs/windmill.glb';
             angle = 270;
 			desiredScale = 2;
+            animated = 'true';
             break;
 		case '4':
 			file = 'assets/objs/statueLaRenommee.glb';
 			desiredScale = 2.5;
+            animated = 'false';
 			break;
 		case '5':
 			file = 'assets/objs/statue2.glb';
 			desiredScale = 2;
+            animated = 'false';
 			break;
         default:
             currentObject = vObj; // Valor padrão para o cubo
 			desiredScale = 1;
+            animated = 'false';
 			file = 'cube';
     }
 
@@ -1157,13 +1172,12 @@ document.getElementById('select3').addEventListener('change', function() {
             currentObject = loadedObjects[file];
             scene.add(currentObject);
         } else {
-            loadGLTFFile(file, desiredScale, angle);
+            loadGLTFFile(file, desiredScale, angle, animated);
         }
     } else {
         scene.add(currentObject);
     }
 });
-
 
 function render(){
 	updateAR(); 
@@ -1178,6 +1192,10 @@ function render(){
 		camera.getWorldQuaternion(quaternion);
 		//console.log("Camera position: " + position.x + " " + position.y + " " + position.z);
 	}
+
+    let delta = clock.getDelta(); 
+    for(var i = 0; i<mixer.length; i++)
+        mixer[i].update( delta );
 }
 		
 render();
