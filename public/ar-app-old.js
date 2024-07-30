@@ -14,7 +14,7 @@ var clock = new THREE.Clock();
 var planeSize = 150.00;
 var sPlaneSize = 150.00;
 var sPlaneSegments = 300.00;
-var vObjHeight = 0.95;
+var vObjHeight = 1.20;
 var vObjRatio = 1.00;
 var adjustX = 0.00;
 var adjustZ = 0.00;
@@ -49,6 +49,7 @@ renderer.domElement.style.left = '0px';
 renderer.shadowMap.enabled = true;
 renderer.shadowMapSoft = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
+//renderer.setSize(1280, 720);
 renderer.setSize(window.innerWidth, window.innerHeight); // Change here to render in low resolution (for example 640 x 480)
 renderer.domElement.addEventListener('click', onDocumentMouseClick, false);
 document.body.appendChild(renderer.domElement);
@@ -60,97 +61,82 @@ let AR = {
 let camera, scene;
 
 function onResize() {
-    const aspectRatioBox = document.getElementById("aspect-ratio-box");
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
-    let cropWidth, cropHeight;
-
-    if (windowWidth / windowHeight > 4 / 3) {
-        cropHeight = windowHeight;
-        cropWidth = (windowHeight * 4) / 3;
-    } else {
-        cropWidth = windowWidth;
-        cropHeight = (windowWidth * 3) / 4;
-    }
-
-    aspectRatioBox.style.width = `${cropWidth}px`;
-    aspectRatioBox.style.height = `${cropHeight}px`;
-    aspectRatioBox.style.left = `50%`;
-    aspectRatioBox.style.top = `50%`;
-    aspectRatioBox.style.transform = `translate(-50%, -50%)`;
-
-    renderer.setSize(cropWidth, cropHeight);
-    renderer.domElement.style.width = `${cropWidth}px`;
-    renderer.domElement.style.height = `${cropHeight}px`;
-    renderer.domElement.style.left = `50%`;
-    renderer.domElement.style.top = `50%`;
-    renderer.domElement.style.transform = `translate(-50%, -50%)`;
-
-    if (AR.source) {
-        AR.source.domElement.style.width = `${cropWidth}px`;
-        AR.source.domElement.style.height = `${cropHeight}px`;
-        AR.source.domElement.style.left = `50%`;
-        AR.source.domElement.style.top = `50%`;
-        AR.source.domElement.style.transform = `translate(-50%, -50%)`;
-    }
-
-    if (camera) {
-        camera.aspect = cropWidth / cropHeight;
-        camera.updateProjectionMatrix();
+    AR.source.onResizeElement();
+    AR.source.copyElementSizeTo(renderer.domElement);
+    if (AR.context.arController !== null) {
+        AR.source.copyElementSizeTo(AR.context.arController.canvas);
     }
 }
-window.addEventListener('resize', onResize);
+window.addEventListener('resize', function(){
+    onResize();
+});
 
 function createVirtualObj(){
 	var cube   = new THREE.BoxBufferGeometry(vObjHeight, vObjHeight * vObjRatio, vObjHeight);
 	var wood = new THREE.MeshLambertMaterial({map: loader.load("my-textures/face/wood.png")});
     var transparentMaterial = new THREE.MeshBasicMaterial({
         map: loader.load("my-textures/face/wood.png"),
+        //color: 0x00ff00,
         transparent: true,
+        //opacity: 0.5,
         opacity: 1,
     });
-	return vObj = new THREE.Mesh(cube, transparentMaterial);
+	return vObj        = new THREE.Mesh(cube,   transparentMaterial);
+
 }
 
-function create_scene() {
-    let scene = new THREE.Scene();
-    origLight = new THREE.DirectionalLight(0xffffff);
-    origLight.castShadow = true;
-    var d = vObjRatio * vObjHeight * 10;
-    origLight.shadow.camera.left = -d;
-    origLight.shadow.camera.right = d;
-    origLight.shadow.camera.top = d;
-    origLight.shadow.camera.bottom = -d;
-    origLight.shadow.mapSize.width = 2048;
-    origLight.shadow.mapSize.height = 2048;
+function create_scene()
+{
+	let scene = new THREE.Scene();
+	//var ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+	origLight = new THREE.DirectionalLight(0xffffff);
+	origLight.castShadow = true;
+	var d = vObjRatio * vObjHeight * 10;
+	origLight.shadow.camera.left   = -d;
+	origLight.shadow.camera.right  =  d;
+	origLight.shadow.camera.top    =  d;
+	origLight.shadow.camera.bottom = -d;
 
-    light = origLight.clone();
-    scene.add(light);
-    camera = new THREE.PerspectiveCamera(30, 4 / 3, 0.1, 1000); // Atualizado para 4:3
+	origLight.shadow.mapSize.width  = 2048;
+	origLight.shadow.mapSize.height = 2048;
 
-    scene.add(camera);
-    vObj = createVirtualObj();
-    scene.add(vObj);
-    vObj.position.set(adjustX, vObjRatio * vObjHeight / 2, adjustZ);
-    vObj.castShadow = false;
+	light = origLight.clone();
+	scene.add(light);
+	//light.position.set(0, 10, 0);
+	//light.intensity = 3.0;
 
-    return [scene, camera];
+	//let camera = new THREE.Camera();
+	camera = new THREE.PerspectiveCamera(30,  window.innerWidth / window.innerHeight, 0.1, 1000);
+
+	scene.add( camera );
+	vObj = createVirtualObj();
+	scene.add( vObj );
+	vObj.position.set     (adjustX, vObjRatio * vObjHeight / 2, adjustZ);
+	vObj.castShadow = false;
+
+	camera = camera;
+	scene = scene;  
+
+	return [scene, camera];
 }
-
 
 var aux = create_scene();
 scene 	= aux[0];
 camera = aux[1];
 var helper = new THREE.CameraHelper(camera);
+//scene.add(helper);
 
-export function updateAR() {
-    if (AR.source) {
-        if (AR.source.ready === false) return;
-        AR.context.update(AR.source.domElement);
-        scene.visible = camera.visible;
-        return camera;
-    }
-    return null;
+//-- ALL AR STUFF HERE ---------------------------------------------------------
+export function updateAR()
+{
+   if(AR.source)
+   {
+      if( AR.source.ready === false )	return
+      AR.context.update( AR.source.domElement )
+      scene.visible = camera.visible  
+      return camera;
+   }
+   return null;
 }
 
 function setSource(type, url)
@@ -162,20 +148,14 @@ function setSource(type, url)
 }
 
 function setNewSource(type, url) {
-    if (AR.source) {
-        document.body.removeChild(AR.source.domElement);
-        AR.source = null;
-    }
+    if (AR.source) AR.source = null;
 
     AR.source = new THREEx.ArToolkitSource({
         sourceType: type,
         sourceUrl: url,
     });
-
     AR.source.init(function onReady() {
-        document.body.appendChild(AR.source.domElement);
         onResize();
-        updateCuboPosicao();
     });
 }
 
@@ -185,6 +165,7 @@ export function setARStuff(source)
    {
       case 'image':
          setSource('image', "my-images/new_imagem_1.jpg");
+         //setSource('image', "my-images/img_extobj_5.jpeg");
          break;
       case 'video':
          setSource('video', "my-videos/video4.MOV");
@@ -197,25 +178,33 @@ export function setARStuff(source)
    AR.source.init(function onReady(){
 		onResize()
 	});
-   
+   //----------------------------------------------------------------------------
+   // initialize arToolkitContext
    AR.context = new THREEx.ArToolkitContext({
       cameraParametersUrl:'data/camera_para.dat',
       detectionMode: 'mono',
    })
    
+   // initialize it
    AR.context.init(function onCompleted(){
       camera.projectionMatrix.copy( AR.context.getProjectionMatrix() );
    })
    
+   //----------------------------------------------------------------------------
+   // Create a ArMarkerControls
    new THREEx.ArMarkerControls(AR.context, camera, {	
 		type: "pattern", 
 		patternUrl: "data/kanji.patt",
       	changeMatrixMode: 'cameraTransformMatrix' 
    })
+   // as we do changeMatrixMode: 'cameraTransformMatrix', start with invisible scene
    scene.visible = true   
 }
 
+// Possible sources: 'image', 'video', 'webcam' 
+//setARStuff('image'); 
 setARStuff('webcam'); 
+
 
 var shadowMat = new THREE.ShadowMaterial({
 	opacity: 0.75,
@@ -757,13 +746,6 @@ def cv_to_base64(image):
     return base64.b64encode(buffer).decode('utf-8')
 `;
 
-function updateCuboPosicao() {
-    if (vObj) {
-        vObj.position.set(adjustX, vObjRatio * vObjHeight / 2, adjustZ);
-        vObj.castShadow = false;
-    }
-}
-
 async function processImageWithPyodide(imageSrc, maskSrc) {
     if (!pyodideReady) {
         await loadPyodideAndPackages();
@@ -788,56 +770,6 @@ async function processImageWithPyodide(imageSrc, maskSrc) {
 
     return result.toJs();
 }
-
-document.addEventListener("DOMContentLoaded", () => {
-    const aspectRatioBox = document.getElementById("aspect-ratio-box");
-
-    function resizeAspectRatioBox() {
-        const windowWidth = window.innerWidth;
-        const windowHeight = window.innerHeight;
-        let cropWidth, cropHeight;
-
-        if (windowWidth / windowHeight > 4 / 3) {
-            cropHeight = windowHeight;
-            cropWidth = (windowHeight * 4) / 3;
-        } else {
-            cropWidth = windowWidth;
-            cropHeight = (windowWidth * 3) / 4;
-        }
-
-        aspectRatioBox.style.width = `${cropWidth}px`;
-        aspectRatioBox.style.height = `${cropHeight}px`;
-        aspectRatioBox.style.left = `50%`;
-        aspectRatioBox.style.top = `50%`;
-        aspectRatioBox.style.transform = `translate(-50%, -50%)`;
-
-        renderer.setSize(cropWidth, cropHeight);
-        renderer.domElement.style.width = `${cropWidth}px`;
-        renderer.domElement.style.height = `${cropHeight}px`;
-        renderer.domElement.style.left = `50%`;
-        renderer.domElement.style.top = `50%`;
-        renderer.domElement.style.transform = `translate(-50%, -50%)`;
-
-        if (AR.source) {
-            AR.source.domElement.style.width = `${cropWidth}px`;
-            AR.source.domElement.style.height = `${cropHeight}px`;
-            AR.source.domElement.style.left = `50%`;
-            AR.source.domElement.style.top = `50%`;
-            AR.source.domElement.style.transform = `translate(-50%, -50%)`;
-        }
-
-        if (camera) {
-            camera.aspect = cropWidth / cropHeight;
-            camera.updateProjectionMatrix();
-        }
-    }
-
-    window.resizeAspectRatioBox = resizeAspectRatioBox;
-
-    window.addEventListener("resize", resizeAspectRatioBox);
-    resizeAspectRatioBox();
-});
-
 
 document.getElementById("submitButtonInput").addEventListener("click", async () => {
     try {
