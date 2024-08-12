@@ -14,7 +14,7 @@ var clock = new THREE.Clock();
 var planeSize = 150.00;
 var sPlaneSize = 150.00;
 var sPlaneSegments = 300.00;
-var vObjHeight = 0.95;
+var vObjHeight = 0.9;
 var vObjRatio = 1.00;
 var adjustX = 0.00;
 var adjustZ = 0.00;
@@ -175,7 +175,7 @@ function setNewSource(type, url) {
     AR.source.init(function onReady() {
         document.body.appendChild(AR.source.domElement);
         onResize();
-        updateCuboPosicao();
+        //updateCuboPosicao();
     });
 }
 
@@ -215,7 +215,7 @@ export function setARStuff(source)
    scene.visible = true   
 }
 
-setARStuff('webcam'); 
+setARStuff('image', "my-images/new_imagem_1.jpg"); 
 
 var shadowMat = new THREE.ShadowMaterial({
 	opacity: 0.75,
@@ -1200,28 +1200,28 @@ document.getElementById('select3').addEventListener('change', function() {
             break;
         case '1':
             file = 'assets/objs/basket.glb';
-			desiredScale = 1.5;
+			desiredScale = 1.1;
             animated = 'false';
             break;
         case '2':
 			file = 'assets/objs/woodenGoose.glb';
-			desiredScale = 2.5;
+			desiredScale = 2;
             animated = 'false';
             break;
         case '3':
             file = 'assets/objs/windmill.glb';
             angle = 270;
-			desiredScale = 2;
+			desiredScale = 1.7;
             animated = 'true';
             break;
 		case '4':
 			file = 'assets/objs/statueLaRenommee.glb';
-			desiredScale = 2.5;
+			desiredScale = 1.7;
             animated = 'false';
 			break;
 		case '5':
 			file = 'assets/objs/statue2.glb';
-			desiredScale = 2;
+			desiredScale = 1.6;
             animated = 'false';
 			break;
         default:
