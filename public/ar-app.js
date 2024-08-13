@@ -333,17 +333,20 @@ document.getElementById("select2").addEventListener("change", async () => {
                 setNewSource('image', 'my-images/img_extobj_6.jpeg');
                 break;
             case '14':
-                setNewSource('image', 'my-images/real_img_2.jpeg'); 
+                setNewSource('image', 'my-images/real_img_20.jpeg'); 
                 break;
             case '15':
                 setNewSource('image', 'my-images/real_img_11.jpeg');
                 break;
             case '16':
-                setNewSource('image', "my-images/real_img_13.jpeg");
+                setNewSource('image', "my-images/real_img_25.jpeg");
                 break;  
             case '17':
-                setNewSource('video', "my-videos/vid_1.MOV");
-                break;          
+                setNewSource('video', "my-videos/vid_5.mp4");
+                break;   
+            case '18':
+                setNewSource('video', "my-videos/vid_6.mp4");
+                break;         
         }
     }
 });
@@ -394,17 +397,20 @@ returnBtn.addEventListener('click', async () => {
             setNewSource('image', 'my-images/img_extobj_6.jpeg');
             break;
         case '14':
-            setNewSource('image', 'my-images/real_img_5.jpeg'); 
+            setNewSource('image', 'my-images/real_img_20.jpeg'); 
             break;
         case '15':
             setNewSource('image', 'my-images/real_img_11.jpeg');
             break;
         case '16':
-            setNewSource('image', "my-images/real_img_13.jpeg");
-            break;      
+            setNewSource('image', "my-images/real_img_25.jpeg");
+            break;  
         case '17':
-            setNewSource('video', "my-videos/vid_1.MOV");
-            break;     
+            setNewSource('video', "my-videos/vid_5.mp4");
+            break;   
+        case '18':
+            setNewSource('video', "my-videos/vid_6.mp4");
+            break;       
     }
 
     if(currentFile != 'cube'){
