@@ -2,6 +2,8 @@ body {
     margin : 0px; 
     overflow: hidden; 
     font-family: Monospace;
+    background-color: rgba(0, 0, 0, 0.74)!important;
+
 }
 
 .box {
@@ -9,8 +11,6 @@ body {
 }
 
 #aspect-ratio-box {
-    border: 2px solid red;
-    position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -28,7 +28,16 @@ body {
     transform: translateX(-50%);
     z-index: 10001;
     width: 50%;
+    text-align: center; /* Centraliza o texto horizontalmente */
     background-color: rgba(179, 179, 179, 0.8); /* Fundo semitransparente */
+}
+#progressBar {
+    line-height: 20px; /* Centraliza o texto verticalmente */
+    transition: width 0.4s ease;
+    background-color: #007bff; /* Cor de fundo da barra de progresso */
+    color: white; /* Cor do texto */
+    font-weight: bold; /* Deixa o texto em negrito */
+    text-align: center; /* Centraliza o texto dentro da barra */
 }
 
 canvas {

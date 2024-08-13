@@ -14,7 +14,7 @@ var clock = new THREE.Clock();
 var planeSize = 150.00;
 var sPlaneSize = 150.00;
 var sPlaneSegments = 300.00;
-var vObjHeight = 0.9;
+var vObjHeight = 1.2;
 var vObjRatio = 1.00;
 var adjustX = 0.00;
 var adjustZ = 0.00;
@@ -94,10 +94,6 @@ function onResize() {
         AR.source.domElement.style.transform = `translate(-50%, -50%)`;
     }
 
-    if (camera) {
-        camera.aspect = cropWidth / cropHeight;
-        camera.updateProjectionMatrix();
-    }
 }
 window.addEventListener('resize', onResize);
 
@@ -161,11 +157,40 @@ function setSource(type, url)
    })
 }
 
-function setNewSource(type, url) {
-    if (AR.source) {
-        document.body.removeChild(AR.source.domElement);
-        AR.source = null;
+function forceFullReset() {
+    // Verificar se AR.context existe e fazer dispose
+    if (AR.context && AR.context.arController) {
+        AR.context.arController.dispose();  // Dispose do arController, se existir
+        AR.context = null;  // Limpar o contexto AR
     }
+
+    // Verificar se AR.markerControls existe e fazer dispose
+    if (AR.markerControls) {
+        AR.markerControls = null;  // Limpar o controle de marcador
+    }
+
+    if (AR.source) {
+        if (AR.source.domElement && AR.source.domElement.parentNode) {
+            AR.source.domElement.parentNode.removeChild(AR.source.domElement);  // Remover a fonte AR do DOM, se estiver presente
+        }
+        AR.source = null;  // Limpar a fonte AR
+    }
+
+    // Simular um breve reset para câmera para forçar a reinicialização completa
+    const temporarySource = new THREEx.ArToolkitSource({
+        sourceType: 'webcam',
+    });
+
+    temporarySource.init(function onReady() {
+        // Depois que a câmera foi inicializada, liberamos o recurso temporário
+        if (temporarySource.domElement && temporarySource.domElement.parentNode) {
+            temporarySource.domElement.parentNode.removeChild(temporarySource.domElement);
+        }
+    });
+}
+
+function setNewSource(type, url) {
+    forceFullReset();  // Forçar um reset completo antes de mudar para a nova imagem
 
     AR.source = new THREEx.ArToolkitSource({
         sourceType: type,
@@ -175,7 +200,27 @@ function setNewSource(type, url) {
     AR.source.init(function onReady() {
         document.body.appendChild(AR.source.domElement);
         onResize();
-        //updateCuboPosicao();
+
+        if (AR.source.parameters.sourceType === "video") {
+            AR.source.domElement.pause(); // Pausar o vídeo após a inicialização
+        }
+
+        AR.context = new THREEx.ArToolkitContext({
+            cameraParametersUrl: 'data/camera_para.dat',
+            detectionMode: 'mono',
+        });
+
+        AR.context.init(function onCompleted() {
+            camera.projectionMatrix.copy(AR.context.getProjectionMatrix());
+        });
+
+        AR.markerControls = new THREEx.ArMarkerControls(AR.context, camera, {
+            type: "pattern",
+            patternUrl: "data/kanji.patt",
+            changeMatrixMode: 'cameraTransformMatrix'
+        });
+
+        scene.visible = true;
     });
 }
 
@@ -187,35 +232,46 @@ export function setARStuff(source)
          setSource('image', "my-images/new_imagem_1.jpg");
          break;
       case 'video':
-         setSource('video', "my-videos/video4.MOV");
+         setSource('video', "my-videos/vid_1.MOV");
          break;
       case 'webcam':
          setSource('webcam', null);
          break;
    }   
    
-   AR.source.init(function onReady(){
-		onResize()
-	});
-   
-   AR.context = new THREEx.ArToolkitContext({
-      cameraParametersUrl:'data/camera_para.dat',
-      detectionMode: 'mono',
-   })
-   
-   AR.context.init(function onCompleted(){
-      camera.projectionMatrix.copy( AR.context.getProjectionMatrix() );
-   })
-   
-   new THREEx.ArMarkerControls(AR.context, camera, {	
-		type: "pattern", 
-		patternUrl: "data/kanji.patt",
-      	changeMatrixMode: 'cameraTransformMatrix' 
-   })
-   scene.visible = true   
+   AR.source.init(function onReady() {
+        document.body.appendChild(AR.source.domElement);
+        onResize();
+
+        if (AR.source.parameters.sourceType === "video") {
+            AR.source.domElement.pause(); // Pausar o vídeo após a inicialização
+        }
+
+        // Reinicializar o contexto do ARToolkit
+        if (AR.context) {
+            AR.context.dispose(); // Limpar o contexto atual
+        }
+
+        AR.context = new THREEx.ArToolkitContext({
+            cameraParametersUrl: 'data/camera_para.dat',
+            detectionMode: 'mono',
+        });
+
+        AR.context.init(function onCompleted() {
+            camera.projectionMatrix.copy(AR.context.getProjectionMatrix());
+        });
+
+        new THREEx.ArMarkerControls(AR.context, camera, {	
+            type: "pattern", 
+            patternUrl: "data/kanji.patt",
+            changeMatrixMode: 'cameraTransformMatrix'
+        });
+
+        scene.visible = true;
+    });
 }
 
-setARStuff('image', "my-images/new_imagem_1.jpg"); 
+setARStuff('image'); 
 
 var shadowMat = new THREE.ShadowMaterial({
 	opacity: 0.75,
@@ -277,14 +333,17 @@ document.getElementById("select2").addEventListener("change", async () => {
                 setNewSource('image', 'my-images/img_extobj_6.jpeg');
                 break;
             case '14':
-                setNewSource('image', 'my-images/img_extobj_1.jpeg'); 
+                setNewSource('image', 'my-images/real_img_2.jpeg'); 
                 break;
             case '15':
-                setNewSource('image', 'my-images/img_extobj_1.jpeg');
+                setNewSource('image', 'my-images/real_img_11.jpeg');
                 break;
             case '16':
-                setNewSource('image', 'my-images/img_extobj_1.jpeg');
-                break;      
+                setNewSource('image', "my-images/real_img_13.jpeg");
+                break;  
+            case '17':
+                setNewSource('video', "my-videos/vid_1.MOV");
+                break;          
         }
     }
 });
@@ -335,14 +394,17 @@ returnBtn.addEventListener('click', async () => {
             setNewSource('image', 'my-images/img_extobj_6.jpeg');
             break;
         case '14':
-            setNewSource('image', 'my-images/img_extobj_1.jpeg'); 
+            setNewSource('image', 'my-images/real_img_5.jpeg'); 
             break;
         case '15':
-            setNewSource('image', 'my-images/img_extobj_1.jpeg');
+            setNewSource('image', 'my-images/real_img_11.jpeg');
             break;
         case '16':
-            setNewSource('image', 'my-images/img_extobj_1.jpeg');
+            setNewSource('image', "my-images/real_img_13.jpeg");
             break;      
+        case '17':
+            setNewSource('video', "my-videos/vid_1.MOV");
+            break;     
     }
 
     if(currentFile != 'cube'){
@@ -401,7 +463,10 @@ def read_image(image_data, channels):
         print(f"Erro ao carregar a imagem")
     return image
 
-def kmeans_segmentation(image, nb_classes=6, use_color=False):
+def kmeans_segmentation(image, nb_classes=6, use_color=False, random_seed=1):
+    # Configurar a semente aleatória fixa para o NumPy
+    np.random.seed(random_seed)
+    
     if use_color:
         data = image.reshape((-1, 3)).astype(np.float32)
     else:
@@ -409,7 +474,8 @@ def kmeans_segmentation(image, nb_classes=6, use_color=False):
         data = gray_image.reshape((-1, 1)).astype(np.float32)
     
     criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 15, 1.0)
-    ret, label, center = cv.kmeans(data, nb_classes, None, criteria, 10, cv.KMEANS_RANDOM_CENTERS)
+    ret, label, center = cv.kmeans(data, nb_classes, None, criteria, 10, cv.KMEANS_PP_CENTERS)
+    
     segmented_image = label.reshape((image.shape[0], image.shape[1]))
     return segmented_image
 
@@ -441,9 +507,11 @@ def analyze_segments_for_shadows(image, labels, nb_classes):
 
     return shadow_mask
 
-def apply_grabcut(image):
+def apply_grabcut(image, random_seed=42):
     if image is None:
         return None
+    # Definir uma semente aleatória fixa
+    np.random.seed(random_seed)
 
     # Inicializar a máscara e o modelo de background/foreground
     mask = np.zeros(image.shape[:2], np.uint8)
@@ -454,7 +522,7 @@ def apply_grabcut(image):
     rect = (10, 10, image.shape[1] - 20, image.shape[0] - 20)
 
     # Aplicar GrabCut
-    cv.grabCut(image, mask, rect, bgdModel, fgdModel, 15, cv.GC_INIT_WITH_RECT)
+    cv.grabCut(image, mask, rect, bgdModel, fgdModel, 25, cv.GC_INIT_WITH_RECT)
 
     # Transformar a máscara para binário onde o foreground é 1
     # Pixels com 2 e 0 são background, 1 e 3 são foreground
@@ -827,8 +895,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         if (camera) {
-            camera.aspect = cropWidth / cropHeight;
-            camera.updateProjectionMatrix();
+            //amera.aspect = cropWidth / cropHeight;
+            //camera.updateProjectionMatrix();
         }
     }
 
@@ -1025,7 +1093,10 @@ document.getElementById("submitButtonInput").addEventListener("click", async () 
         //     imgElement.style.height = "200px";
         //     document.body.appendChild(imgElement);
         // });
-
+        
+        if (AR.source.parameters.sourceType === "video") {
+            AR.source.domElement.play(); // Despausar o vídeo após a geração da sombra
+        }
         submitBtn.style.display = "none";
         //select.style.display = "none";
         select2.style.display = "none";
@@ -1200,28 +1271,28 @@ document.getElementById('select3').addEventListener('change', function() {
             break;
         case '1':
             file = 'assets/objs/basket.glb';
-			desiredScale = 1.1;
+			desiredScale = 1.5;
             animated = 'false';
             break;
         case '2':
 			file = 'assets/objs/woodenGoose.glb';
-			desiredScale = 2;
+			desiredScale = 2.5;
             animated = 'false';
             break;
         case '3':
             file = 'assets/objs/windmill.glb';
             angle = 270;
-			desiredScale = 1.7;
+			desiredScale = 2;
             animated = 'true';
             break;
 		case '4':
 			file = 'assets/objs/statueLaRenommee.glb';
-			desiredScale = 1.7;
+			desiredScale = 2.5;
             animated = 'false';
 			break;
 		case '5':
 			file = 'assets/objs/statue2.glb';
-			desiredScale = 1.6;
+			desiredScale = 2.5;
             animated = 'false';
 			break;
         default:
